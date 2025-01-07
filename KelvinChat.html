@@ -1,350 +1,133 @@
-<html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KelvinChat</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    body, html {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat em Tempo Real</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f3f3f3;
+            color: #333;
+        }
 
-    body {
-      font-family: 'Roboto', sans-serif;
-    }
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
 
-    #blocked-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
+        header {
+            background: #ff6600;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
 
-    #blocked-modal .modal-content {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      width: 80%;
-      max-width: 400px;
-    }
+        #chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #fff;
+        }
 
-    .chat-container-wrapper {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+        .message {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
 
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-    }
+        .message .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
 
-    #header {
-      background-color: #FF6F00;
-      color: white;
-      padding: 10px;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
+        footer {
+            background: #ff6600;
+            padding: 10px;
+        }
 
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      background-color: #F0F0F0;
-    }
+        footer form {
+            display: flex;
+            gap: 10px;
+        }
 
-    .message {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
+        footer input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
 
-    .message img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    .message-content {
-      background-color: white;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .message-content p {
-      margin: 0;
-    }
-
-    #input-container {
-      display: flex;
-      padding: 10px;
-      background-color: #FFFFFF;
-      border-top: 1px solid #E0E0E0;
-      align-items: center;
-    }
-
-    #input-container input {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #E0E0E0;
-      border-radius: 8px;
-    }
-
-    #input-container button {
-      background-color: #FF6F00;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      margin-left: 10px;
-    }
-
-    #name-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #FF6F00;
-      padding: 20px;
-      color: white;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    #name-input {
-      padding: 10px;
-      margin-top: 10px;
-      width: 100%;
-      max-width: 300px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
-
-    #enter-chat {
-      margin-top: 20px;
-      background-color: #28a745;
-      padding: 10px;
-      color: white;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
+        footer button {
+            padding: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <div id="name-container" class="flex flex-col justify-center items-center">
-    <h1 class="text-2xl mb-4">Bem-vindo ao KelvinChat</h1>
-    <input type="text" id="name-input" placeholder="Digite seu nome" class="p-2 text-gray-800 rounded mb-4 w-full max-w-xs">
-    <button id="enter-chat" class="p-2 bg-blue-700 text-white rounded w-full max-w-xs">Entrar</button>
-  </div>
-
-  <div id="chat-container" class="hidden chat-container-wrapper">
-    <div id="header">KelvinChat</div>
-    <div id="messages"></div>
-    <div id="input-container">
-      <input type="text" id="message-input" placeholder="Digite sua mensagem">
-      <button id="send-button">Enviar</button>
+    <div id="chat-container">
+        <header>
+            <h1>Chat em Tempo Real</h1>
+        </header>
+        <main id="chat-messages">
+            <!-- As mensagens do chat aparecerão aqui -->
+        </main>
+        <footer>
+            <form id="chat-form">
+                <input type="text" id="message-input" placeholder="Digite sua mensagem" required>
+                <button type="submit">Enviar</button>
+            </form>
+        </footer>
     </div>
-  </div>
 
-  <div id="blocked-modal">
-    <div class="modal-content">
-      <h2 class="text-xl mb-4">Você foi bloqueado!</h2>
-      <p class="mb-4">Motivo: Você foi bloqueado por infringir as regras do aplicativo.</p>
-      <button id="close-blocked-modal" class="p-2 bg-red-500 text-white rounded">Fechar</button>
-    </div>
-  </div>
+    <script>
+        // Avatar padrão dos usuários
+        const avatarDefault = "https://res.cloudinary.com/duk8xdtth/image/upload/t_Profile/v1736254718/WhatsApp_Image_2025-01-07_at_09.54.22_kgey2o.jpg";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, get, set } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+        // Função para enviar mensagem
+        document.getElementById('chat-form').addEventListener('submit', (e) => {
+            e.preventDefault();
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCPCljNgir3YlR1UV6h3Qyik84AYOp0u4A",
-      authDomain: "crmpro-6b032.firebaseapp.com",
-      databaseURL: "https://crmpro-6b032-default-rtdb.firebaseio.com",
-      projectId: "crmpro-6b032",
-      storageBucket: "crmpro-6b032.appspot.com",
-      messagingSenderId: "491350225551",
-      appId: "1:491350225551:web:0dd6f83a2d49752ca9b6fa",
-    };
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
 
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-    const versionRef = ref(database, 'Version');
-    const usersRef = ref(database, 'Users');
-    const chatRef = ref(database, 'chat');
-
-    const nameContainer = document.getElementById("name-container");
-    const chatContainer = document.getElementById("chat-container");
-    const nameInput = document.getElementById("name-input");
-    const enterChatButton = document.getElementById("enter-chat");
-    const messagesDiv = document.getElementById("messages");
-    const messageInput = document.getElementById("message-input");
-    const sendButton = document.getElementById("send-button");
-    const blockedModal = document.getElementById("blocked-modal");
-    const closeBlockedModalButton = document.getElementById("close-blocked-modal");
-
-    let username = localStorage.getItem('username') || '';
-    let version = localStorage.getItem('version') || '1.0';
-    let userId = localStorage.getItem('userId') || null;
-    let userBlocked = false;
-
-    // Verificando se a versão do app foi alterada
-    get(versionRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const versionData = snapshot.val();
-        const newVersion = versionData.number || '1.0';
-        const description = versionData.descricao || 'Nenhuma descrição';
-
-        if (newVersion !== version) {
-          localStorage.removeItem('username');
-          localStorage.removeItem('userId');
-          localStorage.setItem('version', newVersion);
-          alert(`O aplicativo foi atualizado para a versão ${newVersion}. Descrição: ${description}`);
-        }
-      }
-    });
-
-    // Criar a pasta "Version" no Realtime Database caso não exista
-    function createVersionNode() {
-      get(versionRef).then((snapshot) => {
-        if (!snapshot.exists()) {
-          set(versionRef, {
-            number: '1.0',
-            descricao: 'Primeira versão do aplicativo.'
-          });
-        }
-      });
-    }
-
-    // Criar a pasta "Users" no Realtime Database caso não exista
-    function createUsersNode() {
-      get(usersRef).then((snapshot) => {
-        if (!snapshot.exists()) {
-          set(usersRef, {});
-        }
-      });
-    }
-
-    // Criar a pasta "chat" no Realtime Database caso não exista
-    function createChatNode() {
-      get(chatRef).then((snapshot) => {
-        if (!snapshot.exists()) {
-          set(chatRef, {});
-        }
-      });
-    }
-
-    // Verificar e criar a pasta "Users" e o usuário caso necessário
-    function createUserNode() {
-      if (username && !userId) {
-        const newUserRef = push(usersRef);
-        userId = newUserRef.key; // Gerar um ID único para o usuário
-        set(newUserRef, {
-          name: username,
-          blocked: false,
-          rename: false,
-          avatar: `https://res.cloudinary.com/duk8xdtth/image/upload/t_Profile/v1736254718/WhatsApp_Image_2025-01-07_at_09.54.22_kgey2o.jpg`
-        });
-        localStorage.setItem('userId', userId);
-      }
-    }
-
-    // Verificar se o usuário está bloqueado
-    function checkUserBlocked() {
-      get(ref(database, 'Users/' + userId)).then((snapshot) => {
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
-          userBlocked = userData.blocked || false;
-          if (userBlocked) {
-            blockedModal.style.display = 'flex';
-          }
-        }
-      });
-    }
-
-    // Enviar mensagem
-    sendButton.addEventListener('click', () => {
-      if (userBlocked) {
-        alert("Você foi bloqueado e não pode enviar mensagens.");
-        return;
-      }
-
-      const message = messageInput.value;
-      if (message) {
-        push(chatRef, { sender: username, text: message, userId });
-        messageInput.value = ''; // Limpar o campo de mensagem
-      }
-    });
-
-    enterChatButton.addEventListener("click", () => {
-      username = nameInput.value.trim();
-      if (username) {
-        localStorage.setItem('username', username);
-        nameContainer.style.display = "none";
-        chatContainer.style.display = "flex";
-        createUserNode();
-        checkUserBlocked();
-      } else {
-        alert("Por favor, insira um nome.");
-      }
-    });
-
-    closeBlockedModalButton.addEventListener("click", () => {
-      blockedModal.style.display = "none";
-    });
-
-    // Carregar mensagens
-    onValue(chatRef, (snapshot) => {
-      messagesDiv.innerHTML = "";
-      snapshot.forEach((childSnapshot) => {
-        const message = childSnapshot.val();
-        const messageDiv = document.createElement("div");
-        messageDiv.classList.add("message");
-
-        const avatar = document.createElement("img");
-        get(ref(database, 'Users/' + message.userId)).then((userSnapshot) => {
-          if (userSnapshot.exists()) {
-            const userData = userSnapshot.val();
-            avatar.src = userData.avatar || "https://placehold.co/40x40";
-            avatar.alt = `Avatar de ${message.sender}`;
-          }
+            if (message) {
+                const chatMessages = document.getElementById('chat-messages');
+                const messageElement = document.createElement('div');
+                messageElement.innerHTML = `
+                    <div class="message">
+                        <img src="${avatarDefault}" alt="Avatar" class="avatar">
+                        <p>${message}</p>
+                    </div>
+                `;
+                chatMessages.appendChild(messageElement);
+                messageInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Rola para a última mensagem
+            }
         });
 
-        const messageContent = document.createElement("div");
-        messageContent.classList.add("message-content");
+        // Simulação de version.json
+        const versionData = { version: "1.0.0" };
 
-        const messageText = document.createElement("p");
-        messageText.textContent = `${message.sender}: ${message.text}`;
-
-        messageContent.appendChild(messageText);
-        messageDiv.appendChild(avatar);
-        messageDiv.appendChild(messageContent);
-        messagesDiv.appendChild(messageDiv);
-      });
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-
-    // Criar as pastas "Version", "Users" e "chat" caso não existam
-    createVersionNode();
-    createUsersNode();
-    createChatNode();
-  </script>
+        // Verificar atualizações em tempo real
+        setInterval(() => {
+            // Simulando uma requisição para version.json
+            const currentVersion = localStorage.getItem('appVersion');
+            if (versionData.version !== currentVersion) {
+                localStorage.setItem('appVersion', versionData.version);
+                alert("Nova versão disponível. Atualizando...");
+                location.reload(); // Recarrega a página automaticamente
+            }
+        }, 60000); // Verifica a cada 60 segundos
+    </script>
 </body>
 </html>
