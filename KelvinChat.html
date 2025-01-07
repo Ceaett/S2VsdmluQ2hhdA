@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,6 +31,7 @@
             padding: 10px;
             overflow-y: auto;
             background: #fff;
+            border-bottom: 1px solid #ccc;
         }
 
         .message {
@@ -60,6 +61,7 @@
         footer form {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
         footer input {
@@ -76,6 +78,11 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+        }
+
+        footer button:focus {
+            outline: none;
+            border: 2px solid #ff6600;
         }
     </style>
 </head>
@@ -99,7 +106,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, set } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, onChildRemoved, set } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCPCljNgir3YlR1UV6h3Qyik84AYOp0u4A",
@@ -131,10 +138,16 @@
         document.getElementById('chat-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const messageInput = document.getElementById('message-input');
-            const message = messageInput.value.trim();
+            const message = sanitizeMessage(messageInput.value.trim());
+
             if (message) {
-                push(messagesRef, { userId, userName, message, avatar: userAvatar });
-                messageInput.value = '';
+                push(messagesRef, { userId, userName, message, avatar: userAvatar })
+                    .then(() => {
+                        messageInput.value = ''; // Limpa o campo de texto após o envio
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao enviar a mensagem:", error);
+                    });
             }
         });
 
@@ -147,7 +160,11 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = () => {
-                    push(messagesRef, { userId, userName, message: `<img src="${reader.result}" style="max-width:100%;">`, avatar: userAvatar });
+                    const imageMessage = `<img src="${reader.result}" style="max-width:100%;">`;
+                    push(messagesRef, { userId, userName, message: imageMessage, avatar: userAvatar })
+                        .catch((error) => {
+                            console.error("Erro ao enviar a imagem:", error);
+                        });
                 };
                 reader.readAsDataURL(file);
             }
@@ -165,7 +182,7 @@
                 </div>
             `;
             chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Rolagem automática
         });
 
         onChildRemoved(messagesRef, (snapshot) => {
@@ -181,6 +198,13 @@
             `;
             chatMessages.appendChild(messageElement);
         });
+
+        function sanitizeMessage(message) {
+            // Exemplo de sanitização simples (você pode melhorar ou usar uma biblioteca como DOMPurify)
+            const div = document.createElement('div');
+            div.textContent = message;
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>
