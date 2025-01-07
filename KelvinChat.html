@@ -106,7 +106,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, onChildRemoved, set } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, onChildRemoved, remove, set } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCPCljNgir3YlR1UV6h3Qyik84AYOp0u4A",
@@ -173,12 +173,15 @@
         onChildAdded(messagesRef, (snapshot) => {
             const data = snapshot.val();
             const messageElement = document.createElement('div');
+            messageElement.id = snapshot.key; // Atribui a chave única da mensagem ao elemento
+
             messageElement.innerHTML = `
                 <div class="message">
                     <div class="avatar">${data.avatar}</div>
                     <div>
                         <strong>${data.userName}</strong>: ${data.message}
                     </div>
+                    <button class="delete-message" onclick="deleteMessage('${snapshot.key}')">Excluir</button>
                 </div>
             `;
             chatMessages.appendChild(messageElement);
@@ -186,21 +189,31 @@
         });
 
         onChildRemoved(messagesRef, (snapshot) => {
-            const data = snapshot.val();
-            const messageElement = document.createElement('div');
-            messageElement.innerHTML = `
-                <div class="message">
-                    <div class="avatar">${data.avatar}</div>
-                    <div>
-                        <em>Essa mensagem foi excluída por um Administrador.</em>
+            const messageElement = document.getElementById(snapshot.key);
+            if (messageElement) {
+                messageElement.innerHTML = `
+                    <div class="message">
+                        <div class="avatar">${snapshot.val().avatar}</div>
+                        <div>
+                            <em>Essa mensagem foi excluída por um Administrador.</em>
+                        </div>
                     </div>
-                </div>
-            `;
-            chatMessages.appendChild(messageElement);
+                `;
+            }
         });
 
+        function deleteMessage(messageId) {
+            const messageRef = ref(db, 'Mensagens/' + messageId);
+            remove(messageRef)
+                .then(() => {
+                    console.log("Mensagem excluída com sucesso!");
+                })
+                .catch((error) => {
+                    console.error("Erro ao excluir a mensagem:", error);
+                });
+        }
+
         function sanitizeMessage(message) {
-            // Exemplo de sanitização simples (você pode melhorar ou usar uma biblioteca como DOMPurify)
             const div = document.createElement('div');
             div.textContent = message;
             return div.innerHTML;
