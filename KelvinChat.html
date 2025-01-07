@@ -84,6 +84,11 @@
             outline: none;
             border: 2px solid #ff6600;
         }
+
+        #image-preview {
+            max-width: 100%;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -100,6 +105,7 @@
                 <button type="submit">Enviar</button>
                 <input type="file" id="image-input" accept="image/*" style="display: none;">
                 <button type="button" id="upload-button">📷</button>
+                <img id="image-preview" src="" alt="Pré-visualização da imagem" style="display:none;">
             </form>
         </footer>
     </div>
@@ -160,13 +166,36 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = () => {
-                    const imageMessage = `<img src="${reader.result}" style="max-width:100%;">`;
-                    push(messagesRef, { userId, userName, message: imageMessage, avatar: userAvatar })
-                        .catch((error) => {
-                            console.error("Erro ao enviar a imagem:", error);
-                        });
+                    document.getElementById('image-preview').style.display = 'block';
+                    document.getElementById('image-preview').src = reader.result;
                 };
                 reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('chat-form').addEventListener('submit', (e) => {
+            const imagePreview = document.getElementById('image-preview');
+            const imageInput = document.getElementById('image-input');
+            const messageInput = document.getElementById('message-input');
+            e.preventDefault();
+            let messageContent = messageInput.value.trim();
+
+            if (imagePreview.style.display === 'block') {
+                const imageMessage = `<img src="${imagePreview.src}" style="max-width:100%;">`;
+                messageContent = imageMessage;
+                // Limpar a visualização da imagem após o envio
+                imagePreview.style.display = 'none';
+                imageInput.value = ''; // Limpa o campo de arquivo
+            }
+
+            if (messageContent) {
+                push(messagesRef, { userId, userName, message: messageContent, avatar: userAvatar })
+                    .then(() => {
+                        messageInput.value = ''; // Limpa o campo de texto após o envio
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao enviar a mensagem:", error);
+                    });
             }
         });
 
