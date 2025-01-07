@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat em Tempo Real</title>
+    <title>KelvinChat</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
             background: #f3f3f3;
@@ -44,6 +44,12 @@
             height: 40px;
             border-radius: 50%;
             margin-right: 10px;
+            background: #ff6600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
         }
 
         footer {
@@ -76,58 +82,105 @@
 <body>
     <div id="chat-container">
         <header>
-            <h1>Chat em Tempo Real</h1>
+            <h1>KelvinChat</h1>
         </header>
         <main id="chat-messages">
-            <!-- As mensagens do chat aparecerão aqui -->
+            <!-- Mensagens serão exibidas aqui -->
         </main>
         <footer>
             <form id="chat-form">
                 <input type="text" id="message-input" placeholder="Digite sua mensagem" required>
                 <button type="submit">Enviar</button>
+                <input type="file" id="image-input" accept="image/*" style="display: none;">
+                <button type="button" id="upload-button">📷</button>
             </form>
         </footer>
     </div>
 
-    <script>
-        // Avatar padrão dos usuários
-        const avatarDefault = "https://res.cloudinary.com/duk8xdtth/image/upload/t_Profile/v1736254718/WhatsApp_Image_2025-01-07_at_09.54.22_kgey2o.jpg";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded, onChildChanged, onChildRemoved, set } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
-        // Função para enviar mensagem
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPCljNgir3YlR1UV6h3Qyik84AYOp0u4A",
+            authDomain: "crmpro-6b032.firebaseapp.com",
+            databaseURL: "https://crmpro-6b032-default-rtdb.firebaseio.com",
+            projectId: "crmpro-6b032",
+            storageBucket: "crmpro-6b032.appspot.com",
+            messagingSenderId: "491350225551",
+            appId: "1:491350225551:web:0dd6f83a2d49752ca9b6fa",
+            measurementId: "G-82BJJ235KF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const userName = localStorage.getItem('userName') || prompt("Digite seu nome:");
+        const userId = localStorage.getItem('userId') || Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('userName', userName);
+        localStorage.setItem('userId', userId);
+
+        const userAvatar = userName.charAt(0).toUpperCase();
+
+        const usersRef = ref(db, 'Users/' + userId);
+        set(usersRef, { name: userName, id: userId, avatar: userAvatar });
+
+        const chatMessages = document.getElementById('chat-messages');
+        const messagesRef = ref(db, 'Mensagens');
+
         document.getElementById('chat-form').addEventListener('submit', (e) => {
             e.preventDefault();
-
             const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
-
             if (message) {
-                const chatMessages = document.getElementById('chat-messages');
-                const messageElement = document.createElement('div');
-                messageElement.innerHTML = `
-                    <div class="message">
-                        <img src="${avatarDefault}" alt="Avatar" class="avatar">
-                        <p>${message}</p>
-                    </div>
-                `;
-                chatMessages.appendChild(messageElement);
+                push(messagesRef, { userId, userName, message, avatar: userAvatar });
                 messageInput.value = '';
-                chatMessages.scrollTop = chatMessages.scrollHeight; // Rola para a última mensagem
             }
         });
 
-        // Simulação de version.json
-        const versionData = { version: "1.0.0" };
+        document.getElementById('upload-button').addEventListener('click', () => {
+            document.getElementById('image-input').click();
+        });
 
-        // Verificar atualizações em tempo real
-        setInterval(() => {
-            // Simulando uma requisição para version.json
-            const currentVersion = localStorage.getItem('appVersion');
-            if (versionData.version !== currentVersion) {
-                localStorage.setItem('appVersion', versionData.version);
-                alert("Nova versão disponível. Atualizando...");
-                location.reload(); // Recarrega a página automaticamente
+        document.getElementById('image-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    push(messagesRef, { userId, userName, message: `<img src="${reader.result}" style="max-width:100%;">`, avatar: userAvatar });
+                };
+                reader.readAsDataURL(file);
             }
-        }, 60000); // Verifica a cada 60 segundos
+        });
+
+        onChildAdded(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const messageElement = document.createElement('div');
+            messageElement.innerHTML = `
+                <div class="message">
+                    <div class="avatar">${data.avatar}</div>
+                    <div>
+                        <strong>${data.userName}</strong>: ${data.message}
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        onChildRemoved(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const messageElement = document.createElement('div');
+            messageElement.innerHTML = `
+                <div class="message">
+                    <div class="avatar">${data.avatar}</div>
+                    <div>
+                        <em>Essa mensagem foi excluída por um Administrador.</em>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(messageElement);
+        });
     </script>
 </body>
 </html>
