@@ -79,6 +79,16 @@
             window.open(url, "_blank");
         }
 
+        // Função para formatar o CNPJ
+        function formatarCNPJ(cnpj) {
+            cnpj = cnpj.replace(/\D/g, ''); // Remove todos os caracteres não numéricos
+            cnpj = cnpj.replace(/^(\d{2})(\d)/, '$1.$2'); // Coloca ponto após os dois primeiros dígitos
+            cnpj = cnpj.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3'); // Coloca ponto após os cinco primeiros dígitos
+            cnpj = cnpj.replace(/\.(\d{3})(\d)/, '.$1/$2'); // Coloca barra após os oito primeiros dígitos
+            cnpj = cnpj.replace(/(\d{4})(\d)/, '$1-$2'); // Coloca hífen antes dos dois últimos dígitos
+            return cnpj;
+        }
+
         // Função para validar CNPJ usando checksum
         function validarCNPJ(cnpj) {
             cnpj = cnpj.replace(/\D/g, '');
@@ -469,7 +479,7 @@
                         <p class="text-gray-600">O ReclameAqui é uma plataforma que reúne reclamações de consumidores e avaliações sobre empresas.</p>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
-                        <h2 class="text-xl font-semibold mb-4 text-blue-600">🏅 Pontuação de Credibilidade</h2>
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">🏅 Pontuação da Empresa</h2>
                         <p class="text-gray-600">Pontuação: ${pontuacaoCredibilidade}/100</p>
                         ${exibirSeloAutenticidade(pontuacaoCredibilidade)}
                     </div>
@@ -574,6 +584,7 @@
         // Evento de digitação no campo de CNPJ/nome
         document.getElementById('cnpjInput').addEventListener('input', (e) => {
             const termo = e.target.value;
+            e.target.value = formatarCNPJ(termo); // Formata o CNPJ enquanto o usuário digita
             exibirSugestoes(termo);
         });
     </script>
