@@ -25,15 +25,23 @@
             <p class="text-center text-gray-600 mb-6">
                 Sistema inovador e eficiente para consulta de dados de empresas, facilitando o acesso a informações detalhadas sobre qualquer CNPJ registrado no Brasil.
             </p>
-            <input type="text" id="cnpjInput" placeholder="Digite o CNPJ (apenas números)" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-blue-500">
+            <input type="text" id="cnpjInput" placeholder="Digite o CNPJ ou Nome da Empresa" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-blue-500">
             <div id="sugestoes" class="hidden bg-white border border-gray-300 rounded-lg mt-2"></div>
             <button onclick="consultarCNPJ()" class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-300">
                 Consultar
             </button>
             <div class="result mt-6 p-6 bg-gray-50 rounded-lg shadow-inner animate__animated animate__fadeInUp" id="resultado"></div>
-            <button class="export-button w-full bg-green-500 text-white p-3 rounded-lg mt-4 hover:bg-green-600 transition duration-300" onclick="exportarPDF()" style="display: none;">
-                Exportar para PDF
-            </button>
+            <div class="flex gap-4 mt-4">
+                <button class="export-button w-full bg-green-500 text-white p-3 rounded-lg hover:bg-green-600 transition duration-300" onclick="exportarPDF()" style="display: none;">
+                    Exportar para PDF
+                </button>
+                <button class="export-button w-full bg-purple-500 text-white p-3 rounded-lg hover:bg-purple-600 transition duration-300" onclick="exportarJSON()" style="display: none;">
+                    Exportar para JSON
+                </button>
+                <button class="export-button w-full bg-yellow-500 text-white p-3 rounded-lg hover:bg-yellow-600 transition duration-300" onclick="exportarCSV()" style="display: none;">
+                    Exportar para CSV
+                </button>
+            </div>
         </div>
 
         <!-- Painel de Estatísticas -->
@@ -515,6 +523,52 @@
                     text: 'Ocorreu um erro ao tentar exportar o PDF. Tente novamente.',
                 });
             });
+        }
+
+        // Função para exportar JSON
+        function exportarJSON() {
+            const resultadoDiv = document.getElementById('resultado');
+            const nomeEmpresa = document.querySelector('.result h1').innerText || 'consulta_cnpj';
+            const dadosEmpresa = {
+                nome: nomeEmpresa,
+                cnpj: document.querySelector('.result p strong').innerText,
+                situacaoCadastral: document.querySelector('.result p span.text-green-600').innerText,
+                endereco: document.querySelector('.result p:nth-child(5)').innerText,
+                telefone: document.querySelector('.result p:nth-child(7)').innerText,
+                atividadePrincipal: document.querySelector('.result p:nth-child(9)').innerText,
+            };
+
+            const json = JSON.stringify(dadosEmpresa, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nomeEmpresa}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Função para exportar CSV
+        function exportarCSV() {
+            const resultadoDiv = document.getElementById('resultado');
+            const nomeEmpresa = document.querySelector('.result h1').innerText || 'consulta_cnpj';
+            const dadosEmpresa = {
+                nome: nomeEmpresa,
+                cnpj: document.querySelector('.result p strong').innerText,
+                situacaoCadastral: document.querySelector('.result p span.text-green-600').innerText,
+                endereco: document.querySelector('.result p:nth-child(5)').innerText,
+                telefone: document.querySelector('.result p:nth-child(7)').innerText,
+                atividadePrincipal: document.querySelector('.result p:nth-child(9)').innerText,
+            };
+
+            const csv = Object.keys(dadosEmpresa).map(key => `${key};${dadosEmpresa[key]}`).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nomeEmpresa}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         // Evento de digitação no campo de CNPJ/nome
