@@ -4,124 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmpreendaCheck</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        .container {
-            max-width: 900px;
-            margin: 20px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        h1 i {
-            margin-right: 10px;
-            color: #27ae60;
-        }
-        input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-        input[type="text"]:focus {
-            border-color: #3498db;
-            outline: none;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            animation: slideIn 0.5s ease-in-out;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .result h2 {
-            margin-top: 0;
-            color: #2c3e50;
-        }
-        .result p {
-            margin: 10px 0;
-            line-height: 1.6;
-        }
-        .result ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .result ul li {
-            margin: 5px 0;
-        }
-        .export-button {
-            margin-top: 20px;
-            background-color: #27ae60;
-        }
-        .export-button:hover {
-            background-color: #219653;
-        }
-        .loading {
-            text-align: center;
-            font-size: 18px;
-            color: #3498db;
-        }
-        .error {
-            color: red;
-            text-align: center;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@1.14.0/dist/full.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <h1><i class="fas fa-check-circle"></i> EmpreendaCheck</h1>
-        <input type="text" id="cnpjInput" placeholder="Digite o CNPJ (apenas números)">
-        <button onclick="consultarCNPJ()">Consultar</button>
-        <div class="result" id="resultado"></div>
-        <button class="export-button" onclick="exportarPDF()" style="display: none;">Exportar para PDF</button>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <div class="bg-white p-6 rounded-lg shadow-lg animate__animated animate__fadeIn">
+            <h1 class="text-3xl font-bold text-center mb-4">
+                Empreenda<span class="text-green-500">Check</span> <i class="fas fa-check-circle text-green-500"></i>
+            </h1>
+            <p class="text-center text-gray-600 mb-6">
+                Sistema inovador e eficiente para consulta de dados de empresas, facilitando o acesso a informações detalhadas sobre qualquer CNPJ registrado no Brasil.
+            </p>
+            <input type="text" id="cnpjInput" placeholder="Digite o CNPJ (apenas números)" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-blue-500">
+            <button onclick="consultarCNPJ()" class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-300">
+                Consultar
+            </button>
+            <div class="result mt-6 p-6 bg-gray-50 rounded-lg shadow-inner animate__animated animate__fadeInUp" id="resultado"></div>
+            <button class="export-button w-full bg-green-500 text-white p-3 rounded-lg mt-4 hover:bg-green-600 transition duration-300" onclick="exportarPDF()" style="display: none;">
+                Exportar para PDF
+            </button>
+        </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Rodapé atualizado -->
+    <footer class="bg-blue-900 text-white py-6 mt-8">
+        <div class="container mx-auto px-4">
+            <!-- Direitos autorais (ano atualizado para 2025) -->
+            <div class="text-center">
+                <p class="text-sm text-gray-300">
+                    &copy; 2025 EmpreendaCheck. Todos os direitos reservados.
+                </p>
+                <p class="text-sm text-gray-300 mt-2">
+                    Desenvolvido por Kelvin Batista
+                </p>
+            </div>
+
+            <!-- Ícone do Instagram -->
+            <div class="flex justify-center mt-4">
+                <a href="https://www.instagram.com/kelvinbatistta" target="_blank" class="text-white hover:text-blue-300 transition duration-300">
+                    <i class="fab fa-instagram text-xl"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
     <script>
         window.jsPDF = window.jspdf.jsPDF;
+
+        // Função para formatar o Capital Social em R$
+        function formatarCapitalSocial(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            }).format(valor);
+        }
+
+        // Função para usar um proxy CORS alternativo
+        async function fetchWithProxy(url) {
+            try {
+                const proxyUrl = "https://api.allorigins.win/raw?url="; // Proxy CORS alternativo
+                const response = await axios.get(proxyUrl + encodeURIComponent(url));
+                return response.data;
+            } catch (error) {
+                throw new Error('Erro ao acessar a API. Tente novamente mais tarde.');
+            }
+        }
+
+        // Função para consultar CEP usando ViaCEP
+        async function consultarCEP(cep) {
+            try {
+                const response = await axios.get(`https://viacep.com.br/ws/${cep}/json/`);
+                return response.data;
+            } catch (error) {
+                throw new Error('Erro ao consultar CEP.');
+            }
+        }
+
+        // Função para buscar a logo da empresa
+        async function buscarLogoEmpresa(nomeEmpresa) {
+            try {
+                const response = await axios.get(`https://logo.clearbit.com/${nomeEmpresa.replace(/\s+/g, '').toLowerCase()}.com`);
+                return response.config.url;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        // Função para gerar o link do Google Maps com base no endereço
+        function gerarLinkGoogleMaps(endereco) {
+            const query = encodeURIComponent(endereco);
+            return `https://www.google.com/maps?q=${query}&output=embed`;
+        }
+
+        // Função para extrair o primeiro nome da empresa
+        function extrairPrimeiroNome(nomeCompleto) {
+            return nomeCompleto.split(' ')[0];
+        }
 
         async function consultarCNPJ() {
             const cnpj = document.getElementById('cnpjInput').value.replace(/\D/g, '');
@@ -129,95 +115,140 @@
             const exportButton = document.querySelector('.export-button');
 
             if (cnpj.length !== 14) {
-                resultadoDiv.innerHTML = '<p class="error">CNPJ inválido. Digite 14 números.</p>';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'CNPJ inválido',
+                    text: 'Digite 14 números.',
+                });
                 exportButton.style.display = 'none';
                 return;
             }
 
-            resultadoDiv.innerHTML = '<p class="loading">Consultando...</p>';
+            resultadoDiv.innerHTML = '<p class="text-center text-blue-500">Consultando...</p>';
             exportButton.style.display = 'none';
 
             try {
-                // Consulta à API da BrasilAPI
-                const brasilApiResponse = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-                if (!brasilApiResponse.ok) throw new Error('Erro na consulta à BrasilAPI.');
+                // Consulta à API da BrasilAPI com proxy CORS
+                const brasilApiData = await fetchWithProxy(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
 
-                const brasilApiData = await brasilApiResponse.json();
+                // Consulta à API da ReceitaWS com proxy CORS
+                const receitaWsData = await fetchWithProxy(`https://receitaws.com.br/v1/cnpj/${cnpj}`);
 
-                // Consulta à API da ReceitaWS
-                const receitaWsResponse = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`);
-                if (!receitaWsResponse.ok) throw new Error('Erro na consulta à ReceitaWS.');
+                // Consulta de CEP usando ViaCEP
+                const cepData = await consultarCEP(brasilApiData.cep.replace(/\D/g, ''));
 
-                const receitaWsData = await receitaWsResponse.json();
+                // Link para pesquisa no JusBrasil
+                const jusBrasilLink = `https://www.jusbrasil.com.br/busca?q=${encodeURIComponent(brasilApiData.razao_social)}`;
 
-                // Verificação de processos judiciais no JusBrasil
-                const processos = await verificarProcessosJudiciais(brasilApiData.razao_social);
+                // Formatar o Capital Social
+                const capitalSocialFormatado = formatarCapitalSocial(parseFloat(receitaWsData.capital_social));
+
+                // Buscar a logo da empresa
+                const logoEmpresa = await buscarLogoEmpresa(brasilApiData.nome_fantasia || brasilApiData.razao_social);
+                const iniciaisEmpresa = (brasilApiData.nome_fantasia || brasilApiData.razao_social).split(' ').map(n => n[0]).join('').toUpperCase();
+
+                // Gerar endereço completo
+                const enderecoCompleto = `${brasilApiData.descricao_tipo_de_logradouro} ${brasilApiData.logradouro}, ${brasilApiData.numero} - ${brasilApiData.bairro}, ${brasilApiData.municipio} - ${brasilApiData.uf}`;
+
+                // Extrair o primeiro nome da empresa
+                const primeiroNomeEmpresa = extrairPrimeiroNome(brasilApiData.nome_fantasia || brasilApiData.razao_social);
 
                 // Exibição dos resultados
                 resultadoDiv.innerHTML = `
-                    <h2>${brasilApiData.nome_fantasia || brasilApiData.razao_social}</h2>
-                    <p><strong>CNPJ:</strong> ${brasilApiData.cnpj}</p>
-                    <p><strong>Razão Social:</strong> ${brasilApiData.razao_social}</p>
-                    <p><strong>Nome Fantasia:</strong> ${brasilApiData.nome_fantasia || 'Não informado'}</p>
-                    <p><strong>Situação Cadastral:</strong> ${brasilApiData.descricao_situacao_cadastral}</p>
-                    <p><strong>Data de Abertura:</strong> ${brasilApiData.data_inicio_atividade}</p>
-                    <p><strong>Endereço:</strong> ${brasilApiData.descricao_tipo_de_logradouro} ${brasilApiData.logradouro}, ${brasilApiData.numero} - ${brasilApiData.bairro}, ${brasilApiData.municipio} - ${brasilApiData.uf}</p>
-                    <p><strong>CEP:</strong> ${brasilApiData.cep}</p>
-                    <p><strong>Telefone:</strong> ${brasilApiData.ddd_telefone_1 || 'Não informado'}</p>
-                    <p><strong>Atividade Principal:</strong> ${brasilApiData.cnae_fiscal_descricao}</p>
-                    <p><strong>Porte:</strong> ${brasilApiData.descricao_porte}</p>
-                    <p><strong>Natureza Jurídica:</strong> ${receitaWsData.natureza_juridica}</p>
-                    <p><strong>Email:</strong> ${receitaWsData.email || 'Não informado'}</p>
-                    <p><strong>Capital Social:</strong> ${receitaWsData.capital_social}</p>
-                    <p><strong>Simples Nacional:</strong> ${receitaWsData.simples.optante ? 'Sim' : 'Não'}</p>
-                    <p><strong>MEI:</strong> ${receitaWsData.simei.optante ? 'Sim' : 'Não'}</p>
-                    <p><strong>Quadro Societário:</strong></p>
-                    <ul>
-                        ${receitaWsData.qsa.map(socio => `
-                            <li>${socio.nome} (${socio.qual})</li>
-                        `).join('')}
-                    </ul>
-                    <p><strong>Processos Judiciais:</strong> ${processos}</p>
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full mr-4 flex items-center justify-center bg-blue-500 text-white font-bold text-2xl">
+                            ${logoEmpresa ? `<img alt="Logo da empresa" class="w-16 h-16 rounded-full" src="${logoEmpresa}">` : iniciaisEmpresa}
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-blue-600">${brasilApiData.nome_fantasia || brasilApiData.razao_social}</h1>
+                            <p class="text-gray-600">${brasilApiData.razao_social}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+                            <h2 class="text-xl font-semibold mb-4 text-blue-600">Informações da Empresa</h2>
+                            <p class="mb-2"><strong>CNPJ:</strong> ${brasilApiData.cnpj}</p>
+                            <p class="mb-2"><strong>Situação Cadastral:</strong> <span class="text-green-600">${brasilApiData.descricao_situacao_cadastral}</span></p>
+                            <p class="mb-2"><strong>Data de Abertura:</strong> ${brasilApiData.data_inicio_atividade}</p>
+                            <p class="mb-2"><strong>Endereço:</strong> ${enderecoCompleto}</p>
+                            <p class="mb-2"><strong>CEP:</strong> ${brasilApiData.cep}</p>
+                            <p class="mb-2"><strong>Telefone:</strong> ${brasilApiData.ddd_telefone_1 || 'Não informado'}</p>
+                            <p class="mb-2"><strong>Atividade Principal:</strong> ${brasilApiData.cnae_fiscal_descricao}</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+                            <h2 class="text-xl font-semibold mb-4 text-blue-600">Detalhes Adicionais</h2>
+                            <p class="mb-2"><strong>Porte:</strong> ${brasilApiData.descricao_porte || 'Não informado'}</p>
+                            <p class="mb-2"><strong>Natureza Jurídica:</strong> ${receitaWsData.natureza_juridica}</p>
+                            <p class="mb-2"><strong>Email:</strong> <a class="text-blue-500 hover:underline" href="mailto:${receitaWsData.email}">${receitaWsData.email || 'Não informado'}</a></p>
+                            <p class="mb-2"><strong>Capital Social:</strong> ${capitalSocialFormatado}</p>
+                            <p class="mb-2"><strong>Simples Nacional:</strong> ${receitaWsData.simples.optante ? 'Sim' : 'Não'}</p>
+                            <p class="mb-2"><strong>MEI:</strong> ${receitaWsData.simei.optante ? 'Sim' : 'Não'}</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">Localização</h2>
+                        <iframe
+                            width="100%"
+                            height="450"
+                            style="border:0"
+                            loading="lazy"
+                            allowfullscreen
+                            src="${gerarLinkGoogleMaps(enderecoCompleto)}">
+                        </iframe>
+                    </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">Quadro Societário</h2>
+                        <ul class="list-disc pl-6">
+                            ${receitaWsData.qsa.map(socio => `
+                                <li>${socio.nome} (${socio.qual})</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">Processos Judiciais</h2>
+                        <p class="text-gray-600 mb-4">Para consultar processos judiciais envolvendo a empresa, acesse o site do <a href="${jusBrasilLink}" target="_blank" class="text-blue-500 hover:underline">JusBrasil</a>.</p>
+                        <p class="text-gray-600">O JusBrasil permite pesquisar processos em tribunais de todo o Brasil, incluindo ações cíveis, trabalhistas e criminais.</p>
+                    </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">Dívidas Ativas e Certidões Negativas</h2>
+                        <p class="text-gray-600 mb-4">Para consultar dívidas ativas e emitir certidões negativas, acesse o site da <a href="https://solucoes.receita.fazenda.gov.br/servicos/certidaointernet/pj/emitir" target="_blank" class="text-blue-500 hover:underline">Receita Federal</a>.</p>
+                        <p class="text-gray-600">A Certidão Negativa de Débitos (CND) comprova que a empresa não possui débitos com a Receita Federal.</p>
+                    </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">Histórico no ReclameAqui</h2>
+                        <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}" target="_blank" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
+                        <p class="text-gray-600">O ReclameAqui é uma plataforma que reúne reclamações de consumidores e avaliações sobre empresas.</p>
+                    </div>
                 `;
 
                 exportButton.style.display = 'block';
             } catch (error) {
-                resultadoDiv.innerHTML = `<p class="error">Erro: ${error.message}</p>`;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro',
+                    text: error.message,
+                });
                 exportButton.style.display = 'none';
-            }
-        }
-
-        async function verificarProcessosJudiciais(razaoSocial) {
-            try {
-                const response = await fetch(`https://api.jusbrasil.com/processos?q=${encodeURIComponent(razaoSocial)}`);
-                if (!response.ok) throw new Error('Erro ao consultar processos judiciais.');
-                const data = await response.json();
-                return data.processos.length > 0 ? `${data.processos.length} processo(s) encontrado(s)` : 'Nenhum processo encontrado';
-            } catch (error) {
-                return 'Erro ao verificar processos judiciais';
             }
         }
 
         function exportarPDF() {
             const resultadoDiv = document.getElementById('resultado');
-            const doc = new jsPDF();
+            const nomeEmpresa = document.querySelector('.result h1').innerText || 'consulta_cnpj';
 
-            doc.setFontSize(18);
-            doc.text("Consulta de CNPJ - EmpreendaCheck", 10, 10);
-            doc.setFontSize(12);
+            html2canvas(resultadoDiv, {
+                scale: 2, // Melhora a qualidade da imagem
+                logging: true,
+                useCORS: true,
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // Largura do A4 em mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            const lines = resultadoDiv.innerText.split('\n');
-            let y = 20;
-            lines.forEach(line => {
-                if (y > 280) {
-                    doc.addPage();
-                    y = 10;
-                }
-                doc.text(line, 10, y);
-                y += 10;
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save(`${nomeEmpresa}.pdf`);
             });
-
-            doc.save('consulta_cnpj.pdf');
         }
     </script>
 </body>
