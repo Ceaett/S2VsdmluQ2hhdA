@@ -511,9 +511,25 @@
 
         // Função para exportar PDF
         function exportarPDF() {
-            const nomeEmpresa = document.querySelector('.result h1').innerText || 'consulta_cnpj';
-            const url = `https://gerar-pdf.com/api?nome=${encodeURIComponent(nomeEmpresa)}`;
-            window.open(url, "_blank");
+            const element = document.getElementById("resultado");
+            html2canvas(element).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const doc = new jsPDF();
+                const imgWidth = 190; 
+                const pageHeight = doc.internal.pageSize.height;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 10;
+                doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                doc.save("resultado.pdf");
+            });
         }
 
         // Função para exportar JSON
@@ -567,6 +583,18 @@
             const termo = e.target.value;
             e.target.value = formatarCNPJ(termo); // Formata o CNPJ enquanto o usuário digita
             exibirSugestoes(termo);
+        });
+
+        // Abrir links externos corretamente
+        document.addEventListener('click', function(e) {
+            let target = e.target;
+            while (target && target.tagName !== 'A') {
+                target = target.parentNode;
+            }
+            if (target && target.tagName === 'A' && target.getAttribute('target') === '_blank') {
+                e.preventDefault();
+                window.open(target.href, '_system'); // Abre no navegador externo
+            }
         });
     </script>
 </body>
