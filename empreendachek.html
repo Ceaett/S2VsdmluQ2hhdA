@@ -13,9 +13,11 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto p-4">
+        <!-- Conteúdo Principal -->
         <div class="bg-white p-6 rounded-lg shadow-lg animate__animated animate__fadeIn">
             <h1 class="text-3xl font-bold text-center mb-4">
                 Empreenda<span class="text-green-500">Check</span> <i class="fas fa-check-circle text-green-500"></i>
@@ -23,7 +25,8 @@
             <p class="text-center text-gray-600 mb-6">
                 Sistema inovador e eficiente para consulta de dados de empresas, facilitando o acesso a informações detalhadas sobre qualquer CNPJ registrado no Brasil.
             </p>
-            <input type="text" id="cnpjInput" placeholder="Digite o CNPJ (apenas números)" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-blue-500">
+            <input type="text" id="cnpjInput" placeholder="Digite o CNPJ (apenas números) ou nome da empresa" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-blue-500">
+            <div id="sugestoes" class="hidden bg-white border border-gray-300 rounded-lg mt-2"></div>
             <button onclick="consultarCNPJ()" class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-300">
                 Consultar
             </button>
@@ -32,12 +35,17 @@
                 Exportar para PDF
             </button>
         </div>
+
+        <!-- Painel de Estatísticas -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">📊 Painel de Estatísticas</h2>
+            <canvas id="graficoEmpresas"></canvas>
+        </div>
     </div>
 
-    <!-- Rodapé atualizado -->
+    <!-- Rodapé -->
     <footer class="bg-blue-900 text-white py-6 mt-8">
         <div class="container mx-auto px-4">
-            <!-- Direitos autorais (ano atualizado para 2025) -->
             <div class="text-center">
                 <p class="text-sm text-gray-300">
                     &copy; 2025 EmpreendaCheck. Todos os direitos reservados.
@@ -46,8 +54,6 @@
                     Desenvolvido por Kelvin Batista
                 </p>
             </div>
-
-            <!-- Ícone do Instagram -->
             <div class="flex justify-center mt-4">
                 <a href="https://www.instagram.com/kelvinbatistta" target="_blank" class="text-white hover:text-blue-300 transition duration-300">
                     <i class="fab fa-instagram text-xl"></i>
@@ -58,6 +64,71 @@
 
     <script>
         window.jsPDF = window.jspdf.jsPDF;
+        let graficoEmpresas = null; // Variável para armazenar o gráfico
+
+        // Função para validar CNPJ usando checksum
+        function validarCNPJ(cnpj) {
+            cnpj = cnpj.replace(/\D/g, '');
+
+            if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+
+            const pesosPrimeiroDigito = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+            const pesosSegundoDigito = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+            const calcularDigito = (cnpj, pesos) => {
+                const soma = cnpj.split('').slice(0, pesos.length).reduce((acc, num, index) => acc + (num * pesos[index]), 0);
+                const resto = soma % 11;
+                return resto < 2 ? 0 : 11 - resto;
+            };
+
+            const primeiroDigito = calcularDigito(cnpj, pesosPrimeiroDigito);
+            const segundoDigito = calcularDigito(cnpj, pesosSegundoDigito);
+
+            return cnpj[12] == primeiroDigito && cnpj[13] == segundoDigito;
+        }
+
+        // Função para calcular a pontuação de credibilidade
+        function calcularPontuacaoCredibilidade(empresa) {
+            let pontuacao = 0;
+
+            // Pontuação baseada na idade da empresa
+            const dataAbertura = new Date(empresa.data_inicio_atividade);
+            const idadeEmpresa = (new Date() - dataAbertura) / (1000 * 60 * 60 * 24 * 365); // Idade em anos
+            pontuacao += Math.min(idadeEmpresa * 2, 20); // Máximo de 20 pontos
+
+            // Pontuação baseada no capital social
+            const capitalSocial = parseFloat(empresa.capital_social);
+            if (capitalSocial > 1000000) pontuacao += 30;
+            else if (capitalSocial > 500000) pontuacao += 20;
+            else if (capitalSocial > 100000) pontuacao += 10;
+
+            // Pontuação baseada na situação cadastral
+            if (empresa.descricao_situacao_cadastral === "ATIVA") pontuacao += 20;
+
+            // Pontuação baseada no porte da empresa
+            if (empresa.descricao_porte === "GRANDE EMPRESA") pontuacao += 15;
+            else if (empresa.descricao_porte === "MEDIA EMPRESA") pontuacao += 10;
+            else if (empresa.descricao_porte === "PEQUENA EMPRESA") pontuacao += 5;
+
+            return Math.min(pontuacao, 100); // Pontuação máxima de 100
+        }
+
+        // Função para exibir o selo de autenticidade
+        function exibirSeloAutenticidade(pontuacao) {
+            if (pontuacao >= 80) {
+                return `<div class="bg-green-500 text-white p-2 rounded-lg text-center mt-4">
+                            <i class="fas fa-shield-alt"></i> Selo de Autenticidade: Alta Credibilidade
+                        </div>`;
+            } else if (pontuacao >= 50) {
+                return `<div class="bg-yellow-500 text-white p-2 rounded-lg text-center mt-4">
+                            <i class="fas fa-shield-alt"></i> Selo de Autenticidade: Média Credibilidade
+                        </div>`;
+            } else {
+                return `<div class="bg-red-500 text-white p-2 rounded-lg text-center mt-4">
+                            <i class="fas fa-shield-alt"></i> Selo de Autenticidade: Baixa Credibilidade
+                        </div>`;
+            }
+        }
 
         // Função para formatar o Capital Social em R$
         function formatarCapitalSocial(valor) {
@@ -109,16 +180,135 @@
             return nomeCompleto.split(' ')[0];
         }
 
+        // Função para inicializar o IndexedDB
+        function inicializarIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('EmpreendaCheckDB', 1);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('empresas')) {
+                        db.createObjectStore('empresas', { keyPath: 'cnpj' });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                    reject('Erro ao abrir o banco de dados.');
+                };
+            });
+        }
+
+        // Função para salvar uma empresa no IndexedDB
+        async function salvarEmpresaNoDB(empresa) {
+            const db = await inicializarIndexedDB();
+            const transaction = db.transaction('empresas', 'readwrite');
+            const store = transaction.objectStore('empresas');
+            store.add(empresa);
+        }
+
+        // Função para carregar empresas salvas do IndexedDB
+        async function carregarEmpresasDoDB() {
+            const db = await inicializarIndexedDB();
+            const transaction = db.transaction('empresas', 'readonly');
+            const store = transaction.objectStore('empresas');
+            const request = store.getAll();
+
+            return new Promise((resolve, reject) => {
+                request.onsuccess = () => {
+                    resolve(request.result);
+                };
+                request.onerror = () => {
+                    reject('Erro ao carregar empresas.');
+                };
+            });
+        }
+
+        // Função para exibir sugestões de empresas
+        async function exibirSugestoes(termo) {
+            const empresas = await carregarEmpresasDoDB();
+            const sugestoesDiv = document.getElementById('sugestoes');
+            sugestoesDiv.innerHTML = '';
+
+            if (termo.length === 0) {
+                sugestoesDiv.classList.add('hidden');
+                return;
+            }
+
+            const empresasFiltradas = empresas.filter(empresa =>
+                empresa.razao_social.toLowerCase().includes(termo.toLowerCase())
+            );
+
+            if (empresasFiltradas.length > 0) {
+                sugestoesDiv.innerHTML = empresasFiltradas.map(empresa => `
+                    <div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selecionarSugestao('${empresa.cnpj}')">
+                        ${empresa.razao_social} (${empresa.cnpj})
+                    </div>
+                `).join('');
+                sugestoesDiv.classList.remove('hidden');
+            } else {
+                sugestoesDiv.classList.add('hidden');
+            }
+        }
+
+        // Função para selecionar uma sugestão
+        function selecionarSugestao(cnpj) {
+            document.getElementById('cnpjInput').value = cnpj;
+            document.getElementById('sugestoes').classList.add('hidden');
+            consultarCNPJ();
+        }
+
+        // Função para exibir o painel de estatísticas
+        function exibirPainelEstatisticas(empresas) {
+            const ctx = document.getElementById('graficoEmpresas').getContext('2d');
+
+            // Destruir o gráfico anterior, se existir
+            if (graficoEmpresas) {
+                graficoEmpresas.destroy();
+            }
+
+            const cidades = empresas.map(empresa => empresa.municipio);
+            const contagemCidades = cidades.reduce((acc, cidade) => {
+                acc[cidade] = (acc[cidade] || 0) + 1;
+                return acc;
+            }, {});
+
+            graficoEmpresas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(contagemCidades),
+                    datasets: [{
+                        label: 'Empresas por Cidade',
+                        data: Object.values(contagemCidades),
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
         async function consultarCNPJ() {
-            const cnpj = document.getElementById('cnpjInput').value.replace(/\D/g, '');
+            const cnpjInput = document.getElementById('cnpjInput').value.replace(/\D/g, '');
             const resultadoDiv = document.getElementById('resultado');
             const exportButton = document.querySelector('.export-button');
 
-            if (cnpj.length !== 14) {
+            // Verificar se é um CNPJ válido
+            if (cnpjInput.length === 14 && !validarCNPJ(cnpjInput)) {
                 Swal.fire({
                     icon: 'error',
                     title: 'CNPJ inválido',
-                    text: 'Digite 14 números.',
+                    text: 'O CNPJ digitado não é válido. Verifique o número e tente novamente.',
                 });
                 exportButton.style.display = 'none';
                 return;
@@ -129,10 +319,10 @@
 
             try {
                 // Consulta à API da BrasilAPI com proxy CORS
-                const brasilApiData = await fetchWithProxy(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+                const brasilApiData = await fetchWithProxy(`https://brasilapi.com.br/api/cnpj/v1/${cnpjInput}`);
 
                 // Consulta à API da ReceitaWS com proxy CORS
-                const receitaWsData = await fetchWithProxy(`https://receitaws.com.br/v1/cnpj/${cnpj}`);
+                const receitaWsData = await fetchWithProxy(`https://receitaws.com.br/v1/cnpj/${cnpjInput}`);
 
                 // Consulta de CEP usando ViaCEP
                 const cepData = await consultarCEP(brasilApiData.cep.replace(/\D/g, ''));
@@ -152,6 +342,9 @@
 
                 // Extrair o primeiro nome da empresa
                 const primeiroNomeEmpresa = extrairPrimeiroNome(brasilApiData.nome_fantasia || brasilApiData.razao_social);
+
+                // Calcular pontuação de credibilidade
+                const pontuacaoCredibilidade = calcularPontuacaoCredibilidade(brasilApiData);
 
                 // Exibição dos resultados
                 resultadoDiv.innerHTML = `
@@ -219,7 +412,25 @@
                         <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}" target="_blank" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
                         <p class="text-gray-600">O ReclameAqui é uma plataforma que reúne reclamações de consumidores e avaliações sobre empresas.</p>
                     </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">🏅 Pontuação de Credibilidade</h2>
+                        <p class="text-gray-600">Pontuação: ${pontuacaoCredibilidade}/100</p>
+                        ${exibirSeloAutenticidade(pontuacaoCredibilidade)}
+                    </div>
+                    ${brasilApiData.descricao_situacao_cadastral !== "ATIVA" ? `
+                        <div class="mt-6 bg-red-100 p-4 rounded-lg shadow-inner">
+                            <h2 class="text-xl font-semibold mb-4 text-red-600">🔍 Detector de Empresas Fantasmas</h2>
+                            <p class="text-gray-600">Atenção: Esta empresa possui situação cadastral irregular (${brasilApiData.descricao_situacao_cadastral}).</p>
+                        </div>
+                    ` : ''}
                 `;
+
+                // Salvar empresa no IndexedDB
+                await salvarEmpresaNoDB(brasilApiData);
+
+                // Carregar empresas salvas e exibir estatísticas
+                const empresasSalvas = await carregarEmpresasDoDB();
+                exibirPainelEstatisticas(empresasSalvas);
 
                 exportButton.style.display = 'block';
             } catch (error) {
@@ -231,6 +442,12 @@
                 exportButton.style.display = 'none';
             }
         }
+
+        // Evento de digitação no campo de CNPJ/nome
+        document.getElementById('cnpjInput').addEventListener('input', (e) => {
+            const termo = e.target.value;
+            exibirSugestoes(termo);
+        });
 
         function exportarPDF() {
             const resultadoDiv = document.getElementById('resultado');
