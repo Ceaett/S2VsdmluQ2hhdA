@@ -55,7 +55,7 @@
                 </p>
             </div>
             <div class="flex justify-center mt-4">
-                <a href="#" onclick="abrirInstagram()" class="text-white hover:text-blue-300 transition duration-300">
+                <a href="#" onclick="abrirLink('https://www.instagram.com/kelvinbatistta')" class="text-white hover:text-blue-300 transition duration-300">
                     <i class="fab fa-instagram text-xl"></i>
                 </a>
             </div>
@@ -66,10 +66,9 @@
         window.jsPDF = window.jspdf.jsPDF;
         let graficoEmpresas = null; // Variável para armazenar o gráfico
 
-        // Função para abrir o Instagram
-        function abrirInstagram() {
-            const instagramUrl = "https://www.instagram.com/kelvinbatistta";
-            window.open(instagramUrl, "_blank");
+        // Função para abrir links
+        function abrirLink(url) {
+            window.open(url, "_blank");
         }
 
         // Função para validar CNPJ usando checksum
@@ -102,9 +101,9 @@
             const idadeEmpresa = (new Date() - dataAbertura) / (1000 * 60 * 60 * 24 * 365); // Idade em anos
 
             if (idadeEmpresa >= 10) {
-                pontuacao += 40; // Empresas com mais de 10 anos recebem 40 pontos
+                pontuacao += 70; // Empresas com mais de 10 anos recebem 70 pontos
             } else if (idadeEmpresa >= 5) {
-                pontuacao += 30; // Empresas com mais de 5 anos recebem 30 pontos
+                pontuacao += 50; // Empresas com mais de 5 anos recebem 50 pontos
             } else {
                 pontuacao += Math.min(idadeEmpresa * 2, 20); // Empresas mais novas recebem até 20 pontos
             }
@@ -492,17 +491,6 @@
             }
         }
 
-        // Função para abrir links em WebView
-        function abrirLink(url) {
-            window.open(url, "_blank");
-        }
-
-        // Evento de digitação no campo de CNPJ/nome
-        document.getElementById('cnpjInput').addEventListener('input', (e) => {
-            const termo = e.target.value;
-            exibirSugestoes(termo);
-        });
-
         // Função para exportar PDF
         function exportarPDF() {
             const resultadoDiv = document.getElementById('resultado');
@@ -528,6 +516,12 @@
                 });
             });
         }
+
+        // Evento de digitação no campo de CNPJ/nome
+        document.getElementById('cnpjInput').addEventListener('input', (e) => {
+            const termo = e.target.value;
+            exibirSugestoes(termo);
+        });
     </script>
 </body>
 </html>
