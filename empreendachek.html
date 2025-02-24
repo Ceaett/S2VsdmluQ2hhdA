@@ -110,6 +110,14 @@
             else if (empresa.descricao_porte === "MEDIA EMPRESA") pontuacao += 10;
             else if (empresa.descricao_porte === "PEQUENA EMPRESA") pontuacao += 5;
 
+            // Pontuação baseada no número de sócios
+            const numSocios = empresa.qsa.length;
+            if (numSocios > 5) pontuacao += 10;
+            else if (numSocios > 2) pontuacao += 5;
+
+            // Pontuação baseada no Simples Nacional
+            if (empresa.simples && empresa.simples.optante) pontuacao += 10;
+
             return Math.min(pontuacao, 100); // Pontuação máxima de 100
         }
 
@@ -314,6 +322,17 @@
                 return;
             }
 
+            // Verificar se o campo está vazio ou contém apenas símbolos
+            if (cnpjInput.length === 0 || /^\W+$/.test(cnpjInput)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'CNPJ não encontrado',
+                    text: 'Por favor, verifique e tente novamente.',
+                });
+                exportButton.style.display = 'none';
+                return;
+            }
+
             resultadoDiv.innerHTML = '<p class="text-center text-blue-500">Consultando...</p>';
             exportButton.style.display = 'none';
 
@@ -436,8 +455,8 @@
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Erro',
-                    text: error.message,
+                    title: 'CNPJ não encontrado',
+                    text: 'Por favor, verifique e tente novamente.',
                 });
                 exportButton.style.display = 'none';
             }
