@@ -31,7 +31,7 @@
                 Consultar
             </button>
             <div class="result mt-6 p-6 bg-gray-50 rounded-lg shadow-inner animate__animated animate__fadeInUp" id="resultado"></div>
-            <div class="flex gap-4 mt-4">
+            <div class="flex flex-col md:flex-row gap-4 mt-4">
                 <button class="export-button w-full bg-green-500 text-white p-3 rounded-lg hover:bg-green-600 transition duration-300" onclick="exportarPDF()" style="display: none;">
                     Exportar para PDF
                 </button>
@@ -63,7 +63,7 @@
                 </p>
             </div>
             <div class="flex justify-center mt-4">
-                <a href="#" onclick="abrirLink('https://www.instagram.com/kelvinbatistta')" class="text-white hover:text-blue-300 transition duration-300">
+                <a href="https://www.instagram.com/kelvinbatistta" target="_blank" class="text-white hover:text-blue-300 transition duration-300">
                     <i class="fab fa-instagram text-xl"></i>
                 </a>
             </div>
@@ -438,7 +438,7 @@
                             <h2 class="text-xl font-semibold mb-4 text-blue-600">Detalhes Adicionais</h2>
                             <p class="mb-2"><strong>Porte:</strong> ${brasilApiData.descricao_porte || 'Não informado'}</p>
                             <p class="mb-2"><strong>Natureza Jurídica:</strong> ${receitaWsData.natureza_juridica}</p>
-                            <p class="mb-2"><strong>Email:</strong> <a class="text-blue-500 hover:underline" href="mailto:${receitaWsData.email}">${receitaWsData.email || 'Não informado'}</a></p>
+                            <p class="mb-2"><strong>Email:</strong> <a class="text-blue-500 hover:underline" href="mailto:${receitaWsData.email}" target="_blank">${receitaWsData.email || 'Não informado'}</a></p>
                             <p class="mb-2"><strong>Capital Social:</strong> ${capitalSocialFormatado}</p>
                             <p class="mb-2"><strong>Simples Nacional:</strong> ${receitaWsData.simples.optante ? 'Sim' : 'Não'}</p>
                             <p class="mb-2"><strong>MEI:</strong> ${receitaWsData.simei.optante ? 'Sim' : 'Não'}</p>
@@ -465,17 +465,17 @@
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Processos Judiciais</h2>
-                        <p class="text-gray-600 mb-4">Para consultar processos judiciais envolvendo a empresa, acesse o site do <a href="#" onclick="abrirLink('${jusBrasilLink}')" class="text-blue-500 hover:underline">JusBrasil</a>.</p>
+                        <p class="text-gray-600 mb-4">Para consultar processos judiciais envolvendo a empresa, acesse o site do <a href="${jusBrasilLink}" target="_blank" class="text-blue-500 hover:underline">JusBrasil</a>.</p>
                         <p class="text-gray-600">O JusBrasil permite pesquisar processos em tribunais de todo o Brasil, incluindo ações cíveis, trabalhistas e criminais.</p>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Dívidas Ativas e Certidões Negativas</h2>
-                        <p class="text-gray-600 mb-4">Para consultar dívidas ativas e emitir certidões negativas, acesse o site da <a href="#" onclick="abrirLink('https://solucoes.receita.fazenda.gov.br/servicos/certidaointernet/pj/emitir')" class="text-blue-500 hover:underline">Receita Federal</a>.</p>
+                        <p class="text-gray-600 mb-4">Para consultar dívidas ativas e emitir certidões negativas, acesse o site da <a href="https://solucoes.receita.fazenda.gov.br/servicos/certidaointernet/pj/emitir" target="_blank" class="text-blue-500 hover:underline">Receita Federal</a>.</p>
                         <p class="text-gray-600">A Certidão Negativa de Débitos (CND) comprova que a empresa não possui débitos com a Receita Federal.</p>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Histórico no ReclameAqui</h2>
-                        <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="#" onclick="abrirLink('https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}')" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
+                        <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}" target="_blank" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
                         <p class="text-gray-600">O ReclameAqui é uma plataforma que reúne reclamações de consumidores e avaliações sobre empresas.</p>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
@@ -511,28 +511,9 @@
 
         // Função para exportar PDF
         function exportarPDF() {
-            const resultadoDiv = document.getElementById('resultado');
             const nomeEmpresa = document.querySelector('.result h1').innerText || 'consulta_cnpj';
-
-            html2canvas(resultadoDiv, {
-                scale: 2, // Melhora a qualidade da imagem
-                logging: true,
-                useCORS: true,
-            }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210; // Largura do A4 em mm
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                pdf.save(`${nomeEmpresa}.pdf`);
-            }).catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro ao Exportar PDF',
-                    text: 'Ocorreu um erro ao tentar exportar o PDF. Tente novamente.',
-                });
-            });
+            const url = `https://gerar-pdf.com/api?nome=${encodeURIComponent(nomeEmpresa)}`;
+            window.open(url, "_blank");
         }
 
         // Função para exportar JSON
