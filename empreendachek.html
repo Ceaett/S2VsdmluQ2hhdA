@@ -55,7 +55,7 @@
                 </p>
             </div>
             <div class="flex justify-center mt-4">
-                <a href="https://www.instagram.com/kelvinbatistta" target="_blank" class="text-white hover:text-blue-300 transition duration-300">
+                <a href="#" onclick="abrirInstagram()" class="text-white hover:text-blue-300 transition duration-300">
                     <i class="fab fa-instagram text-xl"></i>
                 </a>
             </div>
@@ -65,6 +65,12 @@
     <script>
         window.jsPDF = window.jspdf.jsPDF;
         let graficoEmpresas = null; // Variável para armazenar o gráfico
+
+        // Função para abrir o Instagram
+        function abrirInstagram() {
+            const instagramUrl = "https://www.instagram.com/kelvinbatistta";
+            window.open(instagramUrl, "_blank");
+        }
 
         // Função para validar CNPJ usando checksum
         function validarCNPJ(cnpj) {
@@ -442,29 +448,18 @@
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Processos Judiciais</h2>
-                        <p class="text-gray-600 mb-4">Para consultar processos judiciais envolvendo a empresa, acesse o site do <a href="${jusBrasilLink}" target="_blank" class="text-blue-500 hover:underline">JusBrasil</a>.</p>
+                        <p class="text-gray-600 mb-4">Para consultar processos judiciais envolvendo a empresa, acesse o site do <a href="#" onclick="abrirLink('${jusBrasilLink}')" class="text-blue-500 hover:underline">JusBrasil</a>.</p>
                         <p class="text-gray-600">O JusBrasil permite pesquisar processos em tribunais de todo o Brasil, incluindo ações cíveis, trabalhistas e criminais.</p>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Dívidas Ativas e Certidões Negativas</h2>
-                        <p class="text-gray-600 mb-4">Para consultar dívidas ativas e emitir certidões negativas, acesse o site da <a href="https://solucoes.receita.fazenda.gov.br/servicos/certidaointernet/pj/emitir" target="_blank" class="text-blue-500 hover:underline">Receita Federal</a>.</p>
+                        <p class="text-gray-600 mb-4">Para consultar dívidas ativas e emitir certidões negativas, acesse o site da <a href="#" onclick="abrirLink('https://solucoes.receita.fazenda.gov.br/servicos/certidaointernet/pj/emitir')" class="text-blue-500 hover:underline">Receita Federal</a>.</p>
                         <p class="text-gray-600">A Certidão Negativa de Débitos (CND) comprova que a empresa não possui débitos com a Receita Federal.</p>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Histórico no ReclameAqui</h2>
-                        <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}" target="_blank" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
+                        <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="#" onclick="abrirLink('https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}')" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
                         <p class="text-gray-600">O ReclameAqui é uma plataforma que reúne reclamações de consumidores e avaliações sobre empresas.</p>
-                    </div>
-                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
-                        <h2 class="text-xl font-semibold mb-4 text-blue-600">📊 Como a Pontuação de Credibilidade é Calculada?</h2>
-                        <ul class="list-disc pl-6 text-gray-600">
-                            <li>Idade da empresa: Até 40 pontos (mais de 10 anos = 40 pontos, mais de 5 anos = 30 pontos).</li>
-                            <li>Capital social: Até 30 pontos.</li>
-                            <li>Situação cadastral ativa: 20 pontos.</li>
-                            <li>Porte da empresa: Até 15 pontos.</li>
-                            <li>Número de sócios: Até 10 pontos.</li>
-                            <li>Optante pelo Simples Nacional: 10 pontos.</li>
-                        </ul>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">🏅 Pontuação de Credibilidade</h2>
@@ -497,12 +492,18 @@
             }
         }
 
+        // Função para abrir links em WebView
+        function abrirLink(url) {
+            window.open(url, "_blank");
+        }
+
         // Evento de digitação no campo de CNPJ/nome
         document.getElementById('cnpjInput').addEventListener('input', (e) => {
             const termo = e.target.value;
             exibirSugestoes(termo);
         });
 
+        // Função para exportar PDF
         function exportarPDF() {
             const resultadoDiv = document.getElementById('resultado');
             const nomeEmpresa = document.querySelector('.result h1').innerText || 'consulta_cnpj';
@@ -519,6 +520,12 @@
 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
                 pdf.save(`${nomeEmpresa}.pdf`);
+            }).catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro ao Exportar PDF',
+                    text: 'Ocorreu um erro ao tentar exportar o PDF. Tente novamente.',
+                });
             });
         }
     </script>
