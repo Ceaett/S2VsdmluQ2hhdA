@@ -94,7 +94,14 @@
             // Pontuação baseada na idade da empresa
             const dataAbertura = new Date(empresa.data_inicio_atividade);
             const idadeEmpresa = (new Date() - dataAbertura) / (1000 * 60 * 60 * 24 * 365); // Idade em anos
-            pontuacao += Math.min(idadeEmpresa * 2, 20); // Máximo de 20 pontos
+
+            if (idadeEmpresa >= 10) {
+                pontuacao += 40; // Empresas com mais de 10 anos recebem 40 pontos
+            } else if (idadeEmpresa >= 5) {
+                pontuacao += 30; // Empresas com mais de 5 anos recebem 30 pontos
+            } else {
+                pontuacao += Math.min(idadeEmpresa * 2, 20); // Empresas mais novas recebem até 20 pontos
+            }
 
             // Pontuação baseada no capital social
             const capitalSocial = parseFloat(empresa.capital_social);
@@ -136,6 +143,16 @@
                             <i class="fas fa-shield-alt"></i> Selo de Autenticidade: Baixa Credibilidade
                         </div>`;
             }
+        }
+
+        // Função para exibir o selo de verificação
+        function exibirSeloVerificacao(idadeEmpresa) {
+            if (idadeEmpresa >= 5) {
+                return `<span class="text-green-500 ml-2" title="Empresa verificada com mais de 5 anos de atividade">
+                            <i class="fas fa-check-circle"></i>
+                        </span>`;
+            }
+            return '';
         }
 
         // Função para formatar o Capital Social em R$
@@ -362,6 +379,10 @@
                 // Extrair o primeiro nome da empresa
                 const primeiroNomeEmpresa = extrairPrimeiroNome(brasilApiData.nome_fantasia || brasilApiData.razao_social);
 
+                // Calcular idade da empresa
+                const dataAbertura = new Date(brasilApiData.data_inicio_atividade);
+                const idadeEmpresa = (new Date() - dataAbertura) / (1000 * 60 * 60 * 24 * 365);
+
                 // Calcular pontuação de credibilidade
                 const pontuacaoCredibilidade = calcularPontuacaoCredibilidade(brasilApiData);
 
@@ -372,7 +393,10 @@
                             ${logoEmpresa ? `<img alt="Logo da empresa" class="w-16 h-16 rounded-full" src="${logoEmpresa}">` : iniciaisEmpresa}
                         </div>
                         <div>
-                            <h1 class="text-3xl font-bold text-blue-600">${brasilApiData.nome_fantasia || brasilApiData.razao_social}</h1>
+                            <h1 class="text-3xl font-bold text-blue-600">
+                                ${brasilApiData.nome_fantasia || brasilApiData.razao_social}
+                                ${exibirSeloVerificacao(idadeEmpresa)}
+                            </h1>
                             <p class="text-gray-600">${brasilApiData.razao_social}</p>
                         </div>
                     </div>
@@ -430,6 +454,17 @@
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">Histórico no ReclameAqui</h2>
                         <p class="text-gray-600 mb-4">Para consultar o histórico de reclamações e avaliações da empresa, acesse o site do <a href="https://www.reclameaqui.com.br/busca/?q=${encodeURIComponent(primeiroNomeEmpresa)}" target="_blank" class="text-blue-500 hover:underline">ReclameAqui</a>.</p>
                         <p class="text-gray-600">O ReclameAqui é uma plataforma que reúne reclamações de consumidores e avaliações sobre empresas.</p>
+                    </div>
+                    <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-600">📊 Como a Pontuação de Credibilidade é Calculada?</h2>
+                        <ul class="list-disc pl-6 text-gray-600">
+                            <li>Idade da empresa: Até 40 pontos (mais de 10 anos = 40 pontos, mais de 5 anos = 30 pontos).</li>
+                            <li>Capital social: Até 30 pontos.</li>
+                            <li>Situação cadastral ativa: 20 pontos.</li>
+                            <li>Porte da empresa: Até 15 pontos.</li>
+                            <li>Número de sócios: Até 10 pontos.</li>
+                            <li>Optante pelo Simples Nacional: 10 pontos.</li>
+                        </ul>
                     </div>
                     <div class="mt-6 bg-gray-50 p-4 rounded-lg shadow-inner">
                         <h2 class="text-xl font-semibold mb-4 text-blue-600">🏅 Pontuação de Credibilidade</h2>
