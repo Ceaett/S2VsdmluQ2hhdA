@@ -132,6 +132,7 @@
                 currentUser = user;
                 showSystem();
                 loadUserData();
+                loadDevices();
             } else {
                 showLogin();
             }
@@ -180,6 +181,7 @@
                     });
                     showSystem();
                     loadUserData();
+                    loadDevices();
                 })
                 .catch((error) => {
                     Swal.fire('Erro!', error.message, 'error');
@@ -220,6 +222,7 @@
                     Swal.fire('Sucesso!', 'Conta criada com sucesso.', 'success');
                     showSystem();
                     loadUserData();
+                    loadDevices();
                 })
                 .catch((error) => {
                     Swal.fire('Erro!', error.message, 'error');
@@ -232,6 +235,15 @@
             onValue(userRef, (snapshot) => {
                 const userData = snapshot.val();
                 console.log('Dados do usuário:', userData);
+            });
+        }
+
+        // Função para carregar dispositivos
+        function loadDevices() {
+            const devicesRef = ref(database, `devices/${currentUser.uid}`);
+            onValue(devicesRef, (snapshot) => {
+                const devices = snapshot.val() || {};
+                updateDevices(devices);
             });
         }
 
@@ -281,19 +293,6 @@
             }
         }
 
-        // Escuta atualizações em tempo real no Firebase
-        const devicesRef = ref(database, 'devices');
-        onValue(devicesRef, (snapshot) => {
-            updateDevices(snapshot.val() || {});
-        });
-
-        // Atualiza o mapa a cada 1 segundo
-        setInterval(() => {
-            onValue(devicesRef, (snapshot) => {
-                updateDevices(snapshot.val() || {});
-            });
-        }, 1000);
-
         // Botão de menu para dispositivos móveis
         document.getElementById('menu-button').addEventListener('click', () => {
             document.querySelector('.sidebar').classList.toggle('open');
@@ -316,6 +315,24 @@
             }).catch((error) => {
                 Swal.fire('Erro!', error.message, 'error');
             });
+        });
+
+        // Menu "Meu Perfil"
+        document.getElementById('meu-perfil').addEventListener('click', (e) => {
+            e.preventDefault();
+            Swal.fire('Meu Perfil', 'Aqui você pode editar seu perfil.', 'info');
+        });
+
+        // Menu "Meu Dispositivo"
+        document.getElementById('meu-dispositivo').addEventListener('click', (e) => {
+            e.preventDefault();
+            Swal.fire('Meu Dispositivo', 'Aqui você pode gerenciar seu dispositivo.', 'info');
+        });
+
+        // Menu "Compartilhar Dispositivos"
+        document.getElementById('compartilhar').addEventListener('click', (e) => {
+            e.preventDefault();
+            Swal.fire('Compartilhar Dispositivos', 'Aqui você pode compartilhar dispositivos com outros usuários.', 'info');
         });
     </script>
 
