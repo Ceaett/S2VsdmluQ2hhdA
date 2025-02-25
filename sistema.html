@@ -123,6 +123,11 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
+        // Redimensiona o mapa ao mudar o tamanho da tela
+        window.addEventListener('resize', () => {
+            map.invalidateSize();
+        });
+
         let markers = {}; // Armazena os marcadores dos dispositivos
         let currentUser = null; // Usuário logado
 
@@ -163,6 +168,11 @@
         document.getElementById('btn-login').addEventListener('click', () => {
             const email = document.getElementById('login-email').value;
             const senha = document.getElementById('login-senha').value;
+
+            if (!email || !senha) {
+                Swal.fire('Erro!', 'Preencha todos os campos.', 'error');
+                return;
+            }
 
             signInWithEmailAndPassword(auth, email, senha)
                 .then((userCredential) => {
@@ -269,10 +279,11 @@
             deviceList.innerHTML = '';
 
             for (const deviceId in devices) {
-                const { nome, latitude, longitude, lastUpdate, batteryLevel, charging, address } = devices[deviceId];
+                const { nome, latitude, longitude, lastUpdate, batteryLevel, charging, address, foto } = devices[deviceId];
                 deviceList.innerHTML += `
                     <div class="device-item bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
                         <div class="flex items-center">
+                            ${foto ? `<img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mr-4">` : ''}
                             <div>
                                 <div class="font-semibold">${nome}</div>
                                 <div class="text-sm text-gray-600">${address}</div>
@@ -290,10 +301,22 @@
                 if (markers[deviceId]) {
                     markers[deviceId].setLatLng([latitude, longitude]);
                 } else {
-                    markers[deviceId] = L.marker([latitude, longitude]).addTo(map)
+                    const icon = foto ? L.icon({
+                        iconUrl: foto,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40],
+                        popupAnchor: [0, -40]
+                    }) : L.icon({
+                        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34]
+                    });
+
+                    markers[deviceId] = L.marker([latitude, longitude], { icon }).addTo(map)
                         .bindPopup(`
                             <div class="text-center">
-                                <img src="${devices[deviceId].foto}" alt="${nome}" class="w-10 h-10 rounded-full mx-auto mb-2">
+                                <img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mx-auto mb-2">
                                 <div class="font-semibold">${nome}</div>
                                 <div class="text-sm">${address}</div>
                                 <div class="text-xs">
