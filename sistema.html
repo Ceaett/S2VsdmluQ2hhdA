@@ -31,36 +31,9 @@
     </style>
 </head>
 <body class="bg-gray-100">
-    <!-- Barra Lateral -->
-    <div class="sidebar bg-white h-screen fixed left-0 top-0 shadow-lg p-4">
-        <h1 class="text-2xl font-bold text-blue-600 mb-8">K - Monitoramento</h1>
-        <ul class="space-y-4">
-            <li><a href="#" id="meu-perfil" class="text-gray-700 hover:text-blue-600"><i class="fas fa-user mr-2"></i>Meu Perfil</a></li>
-            <li><a href="#" id="meu-dispositivo" class="text-gray-700 hover:text-blue-600"><i class="fas fa-mobile-alt mr-2"></i>Meu Dispositivo</a></li>
-            <li><a href="#" id="compartilhar" class="text-gray-700 hover:text-blue-600"><i class="fas fa-share-alt mr-2"></i>Compartilhar Dispositivos</a></li>
-            <li><a href="#" id="logout" class="text-red-500 hover:text-red-700"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a></li>
-        </ul>
-    </div>
-
-    <!-- Conteúdo Principal -->
-    <div class="ml-0 md:ml-80 p-4">
-        <!-- Mapa -->
-        <div id="map" class="mb-8"></div>
-
-        <!-- Dashboard -->
-        <div id="dashboard" class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h2>
-            <div id="device-list" class="space-y-4">
-                <div class="device-item bg-gray-50 p-4 rounded-lg">
-                    Aguardando conexão do dispositivo...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modais -->
-    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-8 rounded-lg w-96">
+    <!-- Página de Login -->
+    <div id="login-page" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
             <h2 class="text-2xl font-bold text-blue-600 mb-4">Login</h2>
             <input type="email" id="login-email" placeholder="E-mail" class="border p-2 rounded-lg w-full mb-4">
             <input type="password" id="login-senha" placeholder="Senha" class="border p-2 rounded-lg w-full mb-4">
@@ -69,8 +42,9 @@
         </div>
     </div>
 
-    <div id="cadastro-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-8 rounded-lg w-96">
+    <!-- Página de Cadastro -->
+    <div id="cadastro-page" class="min-h-screen flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
             <h2 class="text-2xl font-bold text-blue-600 mb-4">Criar Conta</h2>
             <input type="text" id="cadastro-nome" placeholder="Nome" class="border p-2 rounded-lg w-full mb-4">
             <input type="text" id="cadastro-sobrenome" placeholder="Sobrenome" class="border p-2 rounded-lg w-full mb-4">
@@ -79,6 +53,41 @@
             <input type="file" id="cadastro-foto" accept="image/*" class="mb-4">
             <button id="btn-cadastro" class="bg-blue-500 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-600">Criar Conta</button>
             <p class="text-center mt-4">Já tem uma conta? <a href="#" id="fazer-login" class="text-blue-500 hover:text-blue-700">Faça login</a></p>
+        </div>
+    </div>
+
+    <!-- Sistema Principal -->
+    <div id="sistema" class="hidden">
+        <!-- Barra Lateral -->
+        <div class="sidebar bg-white h-screen fixed left-0 top-0 shadow-lg p-4">
+            <h1 class="text-2xl font-bold text-blue-600 mb-8">K - Monitoramento</h1>
+            <ul class="space-y-4">
+                <li><a href="#" id="meu-perfil" class="text-gray-700 hover:text-blue-600"><i class="fas fa-user mr-2"></i>Meu Perfil</a></li>
+                <li><a href="#" id="meu-dispositivo" class="text-gray-700 hover:text-blue-600"><i class="fas fa-mobile-alt mr-2"></i>Meu Dispositivo</a></li>
+                <li><a href="#" id="compartilhar" class="text-gray-700 hover:text-blue-600"><i class="fas fa-share-alt mr-2"></i>Compartilhar Dispositivos</a></li>
+                <li><a href="#" id="logout" class="text-red-500 hover:text-red-700"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a></li>
+            </ul>
+        </div>
+
+        <!-- Botão de Menu para Dispositivos Móveis -->
+        <button id="menu-button" class="fixed top-4 left-4 bg-blue-500 text-white p-2 rounded-lg md:hidden">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Conteúdo Principal -->
+        <div class="ml-0 md:ml-80 p-4">
+            <!-- Mapa -->
+            <div id="map" class="mb-8"></div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h2>
+                <div id="device-list" class="space-y-4">
+                    <div class="device-item bg-gray-50 p-4 rounded-lg">
+                        Aguardando conexão do dispositivo...
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -119,17 +128,37 @@
         let markers = {}; // Armazena os marcadores dos dispositivos
         let currentUser = null; // Usuário logado
 
-        // Função para mostrar o modal de login
-        document.getElementById('criar-conta').addEventListener('click', () => {
-            document.getElementById('login-modal').classList.add('hidden');
-            document.getElementById('cadastro-modal').classList.remove('hidden');
+        // Verifica se o usuário já está logado
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                showSystem();
+                loadUserData();
+            } else {
+                showLogin();
+            }
         });
 
-        // Função para mostrar o modal de cadastro
-        document.getElementById('fazer-login').addEventListener('click', () => {
-            document.getElementById('cadastro-modal').classList.add('hidden');
-            document.getElementById('login-modal').classList.remove('hidden');
-        });
+        // Função para mostrar a página de login
+        function showLogin() {
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('cadastro-page').classList.add('hidden');
+            document.getElementById('sistema').classList.add('hidden');
+        }
+
+        // Função para mostrar a página de cadastro
+        function showCadastro() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('cadastro-page').classList.remove('hidden');
+            document.getElementById('sistema').classList.add('hidden');
+        }
+
+        // Função para mostrar o sistema principal
+        function showSystem() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('cadastro-page').classList.add('hidden');
+            document.getElementById('sistema').classList.remove('hidden');
+        }
 
         // Função para fazer login
         document.getElementById('btn-login').addEventListener('click', () => {
@@ -139,8 +168,19 @@
             auth.signInWithEmailAndPassword(email, senha)
                 .then((userCredential) => {
                     currentUser = userCredential.user;
-                    document.getElementById('login-modal').classList.add('hidden');
-                    Swal.fire('Sucesso!', 'Login realizado com sucesso.', 'success');
+                    Swal.fire({
+                        title: 'Salvar Login?',
+                        text: 'Deseja salvar o login para entrar automaticamente na próxima vez?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sim',
+                        cancelButtonText: 'Não'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            localStorage.setItem('savedLogin', JSON.stringify({ email, senha }));
+                        }
+                    });
+                    showSystem();
                     loadUserData();
                 })
                 .catch((error) => {
@@ -179,8 +219,8 @@
                     });
                 })
                 .then(() => {
-                    document.getElementById('cadastro-modal').classList.add('hidden');
                     Swal.fire('Sucesso!', 'Conta criada com sucesso.', 'success');
+                    showSystem();
                     loadUserData();
                 })
                 .catch((error) => {
@@ -253,6 +293,15 @@
                 updateDevices(snapshot.val() || {});
             });
         }, 1000);
+
+        // Botão de menu para dispositivos móveis
+        document.getElementById('menu-button').addEventListener('click', () => {
+            document.querySelector('.sidebar').classList.toggle('open');
+        });
+
+        // Navegação entre login e cadastro
+        document.getElementById('criar-conta').addEventListener('click', showCadastro);
+        document.getElementById('fazer-login').addEventListener('click', showLogin);
     </script>
 </body>
 </html>
