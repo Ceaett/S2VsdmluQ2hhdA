@@ -239,35 +239,40 @@
         // Função para iniciar o rastreamento do dispositivo
         function startDeviceTracking() {
             if (navigator.geolocation) {
-                navigator.geolocation.watchPosition((position) => {
-                    const { latitude, longitude } = position.coords;
-                    const batteryLevel = Math.random(); // Simula o nível da bateria
-                    const charging = Math.random() > 0.5; // Simula o status de carregamento
+                setInterval(() => {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        const { latitude, longitude } = position.coords;
+                        const batteryLevel = Math.random(); // Simula o nível da bateria
+                        const charging = Math.random() > 0.5; // Simula o status de carregamento
 
-                    // Obtém o endereço completo usando geocodificação reversa
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const address = data.display_name || "Endereço não disponível";
+                        // Obtém o endereço simplificado usando geocodificação reversa
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const address = data.address || {};
+                                const simplifiedAddress = `${address.road || ''} ${address.house_number || ''}, ${address.suburb || ''}, ${address.city || ''}, ${address.state || ''}`;
 
-                            // Atualiza a localização do dispositivo no Firebase
-                            set(ref(database, `devices/${currentUser.uid}`), {
-                                nome: currentUser.displayName || "Usuário",
-                                latitude,
-                                longitude,
-                                lastUpdate: Date.now(),
-                                batteryLevel,
-                                charging,
-                                address
+                                // Atualiza a localização do dispositivo no Firebase
+                                set(ref(database, `devices/${currentUser.uid}`), {
+                                    nome: currentUser.displayName || "Usuário",
+                                    sobrenome: currentUser.sobrenome || "",
+                                    latitude,
+                                    longitude,
+                                    lastUpdate: Date.now(),
+                                    batteryLevel,
+                                    charging,
+                                    address: simplifiedAddress,
+                                    foto: currentUser.foto || ""
+                                });
                             });
-                        });
-                }, (error) => {
-                    console.error('Erro ao obter localização:', error);
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                });
+                    }, (error) => {
+                        console.error('Erro ao obter localização:', error);
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                }, 60000); // Atualiza a cada 60 segundos
             } else {
                 Swal.fire('Erro!', 'Geolocalização não suportada.', 'error');
             }
@@ -279,13 +284,13 @@
             deviceList.innerHTML = '';
 
             for (const deviceId in devices) {
-                const { nome, latitude, longitude, lastUpdate, batteryLevel, charging, address, foto } = devices[deviceId];
+                const { nome, sobrenome, latitude, longitude, lastUpdate, batteryLevel, charging, address, foto } = devices[deviceId];
                 deviceList.innerHTML += `
                     <div class="device-item bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
                         <div class="flex items-center">
                             ${foto ? `<img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mr-4">` : ''}
                             <div>
-                                <div class="font-semibold">${nome}</div>
+                                <div class="font-semibold">${nome} ${sobrenome}</div>
                                 <div class="text-sm text-gray-600">${address}</div>
                                 <div class="text-xs text-gray-500">Última atualização: ${new Date(lastUpdate).toLocaleString()}</div>
                                 <div class="text-xs text-gray-500">
@@ -317,7 +322,7 @@
                         .bindPopup(`
                             <div class="text-center">
                                 <img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mx-auto mb-2">
-                                <div class="font-semibold">${nome}</div>
+                                <div class="font-semibold">${nome} ${sobrenome}</div>
                                 <div class="text-sm">${address}</div>
                                 <div class="text-xs">
                                     <i class="fas fa-battery-${batteryLevel > 80 ? 'full' : batteryLevel > 50 ? 'three-quarters' : batteryLevel > 20 ? 'half' : 'quarter'}"></i>
