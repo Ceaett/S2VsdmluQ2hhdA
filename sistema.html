@@ -107,7 +107,7 @@
             }
 
             for (const deviceId in devices) {
-                const { name, latitude, longitude, lastUpdate, profilePhoto } = devices[deviceId];
+                const { name, latitude, longitude, lastUpdate, profilePhoto, batteryLevel, charging } = devices[deviceId];
                 deviceList.innerHTML += `
                     <div class="device-item bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
                         <div class="flex items-center">
@@ -116,6 +116,10 @@
                                 <div class="font-semibold">${name || `Dispositivo ${deviceId}`}</div>
                                 <div class="text-sm text-gray-600">Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}</div>
                                 <div class="text-xs text-gray-500">Última atualização: ${new Date(lastUpdate).toLocaleString()}</div>
+                                <div class="text-xs text-gray-500">
+                                    <i class="fas fa-battery-${batteryLevel > 80 ? 'full' : batteryLevel > 50 ? 'three-quarters' : batteryLevel > 20 ? 'half' : 'quarter'}"></i>
+                                    ${Math.round(batteryLevel * 100)}% ${charging ? '(Carregando)' : ''}
+                                </div>
                             </div>
                         </div>
                         <button onclick="deleteDevice('${deviceId}')" class="text-red-500 hover:text-red-700">
@@ -194,8 +198,8 @@
         // Botão para atualizar manualmente
         document.getElementById('refresh-devices').addEventListener('click', updateDevices);
 
-        // Atualiza a lista de dispositivos a cada 5 segundos
-        setInterval(updateDevices, 5000);
+        // Atualiza a lista de dispositivos a cada 1 segundos
+        setInterval(updateDevices, 1000);
         updateDevices(); // Atualiza imediatamente ao carregar a página
     </script>
 </body>
