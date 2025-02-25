@@ -300,8 +300,14 @@
         });
 
         // Navegação entre login e cadastro
-        document.getElementById('criar-conta').addEventListener('click', showCadastro);
-        document.getElementById('fazer-login').addEventListener('click', showLogin);
+        document.getElementById('criar-conta').addEventListener('click', (e) => {
+            e.preventDefault();
+            showCadastro();
+        });
+        document.getElementById('fazer-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            showLogin();
+        });
     </script>
 </body>
 </html>
