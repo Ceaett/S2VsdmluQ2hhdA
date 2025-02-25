@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Monitoramento</title>
+  <title>Cadastro - Monitoramento</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "SUA_API_KEY",
@@ -14,22 +15,36 @@
       projectId: "SEU_PROJECT_ID",
       storageBucket: "SEU_STORAGE_BUCKET",
       messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-      appId: "SEU_APP_ID"
+      appId: "SEU_APP_ID",
+      databaseURL: "SEU_DATABASE_URL"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getDatabase(app);
 
     document.addEventListener("DOMContentLoaded", () => {
-      const loginForm = document.getElementById("login-form");
-      loginForm.addEventListener("submit", (e) => {
+      const registerForm = document.getElementById("register-form");
+      registerForm.addEventListener("submit", (e) => {
         e.preventDefault();
+        const nome = document.getElementById("nome").value;
+        const sobrenome = document.getElementById("sobrenome").value;
         const email = document.getElementById("email").value;
         const password = document.getElementById("password").value;
-        
-        signInWithEmailAndPassword(auth, email, password)
+
+        createUserWithEmailAndPassword(auth, email, password)
           .then((userCredential) => {
-            window.location.href = "dashboard.html";
+            const user = userCredential.user;
+            return updateProfile(user, {
+              displayName: `${nome} ${sobrenome}`
+            }).then(() => {
+              set(ref(db, 'users/' + user.uid), {
+                nome: nome,
+                sobrenome: sobrenome,
+                email: email
+              });
+              window.location.href = "dashboard.html";
+            });
           })
           .catch((error) => {
             document.getElementById("error-message").innerText = "Erro: " + error.message;
@@ -39,13 +54,15 @@
   </script>
 </head>
 <body>
-  <h2>Login</h2>
-  <form id="login-form">
+  <h2>Cadastro</h2>
+  <form id="register-form">
+    <input type="text" id="nome" placeholder="Nome" required><br>
+    <input type="text" id="sobrenome" placeholder="Sobrenome" required><br>
     <input type="email" id="email" placeholder="E-mail" required><br>
     <input type="password" id="password" placeholder="Senha" required><br>
-    <button type="submit">Entrar</button>
+    <button type="submit">Cadastrar</button>
   </form>
   <p id="error-message" style="color: red;"></p>
-  <p>Não tem uma conta? <a href="register.html">Cadastre-se</a></p>
+  <p>Já tem uma conta? <a href="login.html">Faça login</a></p>
 </body>
 </html>
