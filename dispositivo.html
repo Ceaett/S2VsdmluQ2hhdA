@@ -62,6 +62,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         let profilePhoto = null;
+        let batteryLevel = 0;
+        let charging = false;
 
         // Função para carregar a foto de perfil
         document.getElementById('profile-photo').addEventListener('change', function(event) {
@@ -84,14 +86,20 @@
 
         // Função para obter localização e status da bateria
         function getLocationAndBattery() {
-            if (navigator.geolocation && navigator.getBattery) {
+            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(sendLocation, showError);
+            } else {
+                document.getElementById('status').innerText = "Geolocalização não é suportada por este navegador.";
+                document.getElementById('retry-btn').classList.remove('hidden');
+            }
+
+            if (navigator.getBattery) {
                 navigator.getBattery().then(battery => {
-                    sendBatteryStatus(battery);
+                    batteryLevel = battery.level;
+                    charging = battery.charging;
                 });
             } else {
-                document.getElementById('status').innerText = "Geolocalização ou status da bateria não são suportados por este navegador.";
-                document.getElementById('retry-btn').classList.remove('hidden');
+                console.warn("API de Bateria não suportada.");
             }
         }
 
@@ -121,8 +129,8 @@
                 longitude, 
                 lastUpdate: Date.now(),
                 profilePhoto,
-                batteryLevel: batteryLevel,
-                charging: charging
+                batteryLevel,
+                charging
             };
             localStorage.setItem('devices', JSON.stringify(devices));
 
@@ -134,23 +142,6 @@
             }).then(() => {
                 window.close(); // Fecha a página após conectar
             });
-        }
-
-        // Função para enviar o status da bateria
-        function sendBatteryStatus(battery) {
-            const batteryLevel = battery.level;
-            const charging = battery.charging;
-
-            // Atualiza o status da bateria no localStorage
-            const devices = JSON.parse(localStorage.getItem('devices')) || {};
-            for (const deviceId in devices) {
-                if (devices[deviceId].name === document.getElementById('device-name').value.trim()) {
-                    devices[deviceId].batteryLevel = batteryLevel;
-                    devices[deviceId].charging = charging;
-                    break;
-                }
-            }
-            localStorage.setItem('devices', JSON.stringify(devices));
         }
 
         // Função para tratar erros de geolocalização
