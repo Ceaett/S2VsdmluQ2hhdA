@@ -1,373 +1,227 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K - Monitoramento</title>
-    <!-- Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        #map {
-            height: 70vh;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoramento de Localização em Tempo Real</title>
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map {
+      height: 60%;
+      width: 100%;
+    }
+
+    .info-container {
+      height: 40%;
+      background-color: #f7f7f7;
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-item {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .info-item span {
+      font-weight: bold;
+    }
+
+    .notification {
+      color: green;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+      #map {
+        height: 50%;
+      }
+
+      .info-container {
+        height: 50%;
+      }
+    }
+  </style>
+  <script type="module">
+    // Importar funções do Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+    import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
+
+    // Configuração do Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
+      authDomain: "kmonitoramento-1e504.firebaseapp.com",
+      databaseURL: "https://kmonitoramento-1e504-default-rtdb.firebaseio.com",
+      projectId: "kmonitoramento-1e504",
+      storageBucket: "kmonitoramento-1e504.firebasestorage.app",
+      messagingSenderId: "1036253657697",
+      appId: "1:1036253657697:web:6077a46bc9b58ae5ac0820",
+      measurementId: "G-LNM4FPTNRH"
+    };
+
+    // Inicializa o Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
+
+    let map, marker, deviceInfoDiv, notificationDiv;
+    let lastLatitude = null;
+    let lastLongitude = null;
+
+    // Função para iniciar o mapa com o Leaflet.js
+    function initMap() {
+      map = L.map('map').setView([-23.55052, -46.633308], 15);  // Posição inicial em São Paulo
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      marker = L.marker([0, 0]).addTo(map);
+    }
+
+    // Função para atualizar a localização no Firebase
+    function updateLocation(latitude, longitude, batteryLevel, deviceName) {
+      const locationRef = ref(db, 'locations/device');
+      set(locationRef, {
+        latitude: latitude,
+        longitude: longitude,
+        batteryLevel: batteryLevel,
+        deviceName: deviceName
+      });
+
+      // Salvar histórico de localizações
+      const locationsHistoryRef = ref(db, 'locations/history');
+      push(locationsHistoryRef, {
+        latitude: latitude,
+        longitude: longitude,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Função para obter o endereço com OpenCage Geocoder
+    async function getAddressFromCoordinates(latitude, longitude) {
+      const apiKey = 'd27b45b0909941a38a2f716f5b090698'; // Sua chave de API do OpenCage
+      const url = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${apiKey}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.results && data.results[0]) {
+          const result = data.results[0];
+          return {
+            address: result.formatted,
+            city: result.components.city || 'Desconhecida',
+            state: result.components.state || 'Desconhecido',
+            country: result.components.country || 'Desconhecido'
+          };
+        } else {
+          return { address: 'Endereço não encontrado' };
         }
-        .sidebar {
-            width: 300px;
-            transition: transform 0.3s ease;
+      } catch (error) {
+        console.error('Erro ao obter o endereço:', error);
+        return { address: 'Erro ao obter o endereço' };
+      }
+    }
+
+    // Função para rastrear a localização do dispositivo
+    function trackLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(async (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+
+          // Obtém o nível de bateria com a API do navegador
+          const battery = await navigator.getBattery();
+          const batteryLevel = Math.round(battery.level * 100); // Obtém o nível de bateria em %
+          const deviceName = navigator.userAgent; // Nome do dispositivo (userAgent)
+
+          // Atualiza a localização e informações do dispositivo no Firebase
+          updateLocation(latitude, longitude, batteryLevel, deviceName);
+
+          // Exibe a localização no mapa
+          marker.setLatLng([latitude, longitude]);
+          map.setView([latitude, longitude], 15);
+
+          // Obtém o endereço e informações adicionais
+          const { address, city, state, country } = await getAddressFromCoordinates(latitude, longitude);
+
+          // Atualiza as informações na interface
+          updateDeviceInfo(batteryLevel, deviceName, address, city, state, country);
+
+          // Notifica quando o dispositivo se mover para um novo local
+          if (lastLatitude !== latitude || lastLongitude !== longitude) {
+            lastLatitude = latitude;
+            lastLongitude = longitude;
+            notificationDiv.innerHTML = `Nova localização detectada! Endereço: ${address}`;
+          }
+        }, (error) => {
+          console.error('Erro ao obter a geolocalização', error);
+        });
+      } else {
+        alert("Geolocalização não suportada pelo seu navegador.");
+      }
+    }
+
+    // Função para exibir as informações do dispositivo
+    function updateDeviceInfo(batteryLevel, deviceName, address, city, state, country) {
+      deviceInfoDiv.innerHTML = `
+        <div class="info-item"><span>Nome do Dispositivo:</span> ${deviceName}</div>
+        <div class="info-item"><span>Nível de Bateria:</span> ${batteryLevel}%</div>
+        <div class="info-item"><span>Endereço:</span> ${address}</div>
+        <div class="info-item"><span>Cidade:</span> ${city}</div>
+        <div class="info-item"><span>Estado:</span> ${state}</div>
+        <div class="info-item"><span>País:</span> ${country}</div>
+      `;
+    }
+
+    // Função para obter a localização do dispositivo em tempo real do Firebase
+    function getLocationFromFirebase() {
+      const locationRef = ref(db, 'locations/device');
+      onValue(locationRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const { latitude, longitude, batteryLevel, deviceName } = data;
+          if (latitude && longitude) {
+            marker.setLatLng([latitude, longitude]);
+            map.setView([latitude, longitude], 15);
+            updateDeviceInfo(batteryLevel, deviceName, 'A buscar endereço...', 'Cidade', 'Estado', 'País');
+          }
         }
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-        }
-    </style>
+      });
+    }
+
+    // Inicializa o sistema ao carregar a página
+    window.onload = () => {
+      deviceInfoDiv = document.getElementById('device-info');
+      notificationDiv = document.getElementById('notification');
+      initMap();
+      trackLocation();
+      getLocationFromFirebase();
+    };
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 </head>
-<body class="bg-gray-100">
-    <!-- Página de Login -->
-    <div id="login-page" class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
-            <h2 class="text-2xl font-bold text-blue-600 mb-4">Login</h2>
-            <input type="email" id="login-email" placeholder="E-mail" class="border p-2 rounded-lg w-full mb-4">
-            <input type="password" id="login-senha" placeholder="Senha" class="border p-2 rounded-lg w-full mb-4">
-            <button id="btn-login" class="bg-blue-500 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-600">Entrar</button>
-            <p class="text-center mt-4">Não tem uma conta? <a href="#" id="criar-conta" class="text-blue-500 hover:text-blue-700">Crie uma</a></p>
-        </div>
-    </div>
-
-    <!-- Página de Cadastro -->
-    <div id="cadastro-page" class="min-h-screen flex items-center justify-center hidden">
-        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
-            <h2 class="text-2xl font-bold text-blue-600 mb-4">Criar Conta</h2>
-            <input type="text" id="cadastro-nome" placeholder="Nome" class="border p-2 rounded-lg w-full mb-4">
-            <input type="text" id="cadastro-sobrenome" placeholder="Sobrenome" class="border p-2 rounded-lg w-full mb-4">
-            <input type="email" id="cadastro-email" placeholder="E-mail" class="border p-2 rounded-lg w-full mb-4">
-            <input type="password" id="cadastro-senha" placeholder="Senha" class="border p-2 rounded-lg w-full mb-4">
-            <input type="file" id="cadastro-foto" accept="image/*" class="mb-4">
-            <button id="btn-cadastro" class="bg-blue-500 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-600">Criar Conta</button>
-            <p class="text-center mt-4">Já tem uma conta? <a href="#" id="fazer-login" class="text-blue-500 hover:text-blue-700">Faça login</a></p>
-        </div>
-    </div>
-
-    <!-- Sistema Principal -->
-    <div id="sistema" class="hidden">
-        <!-- Barra Lateral -->
-        <div class="sidebar bg-white h-screen fixed left-0 top-0 shadow-lg p-4">
-            <h1 class="text-2xl font-bold text-blue-600 mb-8">K - Monitoramento</h1>
-            <ul class="space-y-4">
-                <li><a href="#" id="meu-perfil" class="text-gray-700 hover:text-blue-600"><i class="fas fa-user mr-2"></i>Meu Perfil</a></li>
-                <li><a href="#" id="meu-dispositivo" class="text-gray-700 hover:text-blue-600"><i class="fas fa-mobile-alt mr-2"></i>Meu Dispositivo</a></li>
-                <li><a href="#" id="compartilhar" class="text-gray-700 hover:text-blue-600"><i class="fas fa-share-alt mr-2"></i>Compartilhar Dispositivos</a></li>
-                <li><a href="#" id="logout" class="text-red-500 hover:text-red-700"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a></li>
-            </ul>
-        </div>
-
-        <!-- Botão de Menu para Dispositivos Móveis -->
-        <button id="menu-button" class="fixed top-4 left-4 bg-blue-500 text-white p-2 rounded-lg md:hidden">
-            <i class="fas fa-bars"></i>
-        </button>
-
-        <!-- Conteúdo Principal -->
-        <div class="ml-0 md:ml-80 p-4">
-            <!-- Mapa -->
-            <div id="map" class="mb-8"></div>
-
-            <!-- Dashboard -->
-            <div id="dashboard" class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h2>
-                <div id="device-list" class="space-y-4">
-                    <div class="device-item bg-gray-50 p-4 rounded-lg">
-                        Aguardando conexão do dispositivo...
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase e Leaflet JS -->
-    <script type="module">
-        // Importações do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
-        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js";
-
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
-            authDomain: "kmonitoramento-1e504.firebaseapp.com",
-            databaseURL: "https://kmonitoramento-1e504-default-rtdb.firebaseio.com",
-            projectId: "kmonitoramento-1e504",
-            storageBucket: "kmonitoramento-1e504.firebasestorage.app",
-            messagingSenderId: "1036253657697",
-            appId: "1:1036253657697:web:6077a46bc9b58ae5ac0820",
-            measurementId: "G-LNM4FPTNRH"
-        };
-
-        // Inicializa o Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);
-        const storage = getStorage(app);
-
-        // Inicializa o mapa
-        const map = L.map('map').setView([0, 0], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Redimensiona o mapa ao mudar o tamanho da tela
-        window.addEventListener('resize', () => {
-            map.invalidateSize();
-        });
-
-        let markers = {}; // Armazena os marcadores dos dispositivos
-        let currentUser = null; // Usuário logado
-
-        // Verifica se o usuário já está logado
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                showSystem();
-                loadUserData();
-                startDeviceTracking();
-            } else {
-                showLogin();
-            }
-        });
-
-        // Função para mostrar a página de login
-        function showLogin() {
-            document.getElementById('login-page').classList.remove('hidden');
-            document.getElementById('cadastro-page').classList.add('hidden');
-            document.getElementById('sistema').classList.add('hidden');
-        }
-
-        // Função para mostrar a página de cadastro
-        function showCadastro() {
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('cadastro-page').classList.remove('hidden');
-            document.getElementById('sistema').classList.add('hidden');
-        }
-
-        // Função para mostrar o sistema principal
-        function showSystem() {
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('cadastro-page').classList.add('hidden');
-            document.getElementById('sistema').classList.remove('hidden');
-        }
-
-        // Função para fazer login
-        document.getElementById('btn-login').addEventListener('click', () => {
-            const email = document.getElementById('login-email').value;
-            const senha = document.getElementById('login-senha').value;
-
-            if (!email || !senha) {
-                Swal.fire('Erro!', 'Preencha todos os campos.', 'error');
-                return;
-            }
-
-            signInWithEmailAndPassword(auth, email, senha)
-                .then((userCredential) => {
-                    currentUser = userCredential.user;
-                    showSystem();
-                    loadUserData();
-                    startDeviceTracking();
-                })
-                .catch((error) => {
-                    Swal.fire('Erro!', error.message, 'error');
-                });
-        });
-
-        // Função para criar conta
-        document.getElementById('btn-cadastro').addEventListener('click', () => {
-            const nome = document.getElementById('cadastro-nome').value;
-            const sobrenome = document.getElementById('cadastro-sobrenome').value;
-            const email = document.getElementById('cadastro-email').value;
-            const senha = document.getElementById('cadastro-senha').value;
-            const foto = document.getElementById('cadastro-foto').files[0];
-
-            if (!nome || !sobrenome || !email || !senha || !foto) {
-                Swal.fire('Erro!', 'Preencha todos os campos.', 'error');
-                return;
-            }
-
-            createUserWithEmailAndPassword(auth, email, senha)
-                .then((userCredential) => {
-                    currentUser = userCredential.user;
-                    const fileRef = storageRef(storage, `profiles/${currentUser.uid}`);
-                    return uploadBytes(fileRef, foto);
-                })
-                .then((snapshot) => {
-                    return getDownloadURL(snapshot.ref);
-                })
-                .then((downloadURL) => {
-                    return set(ref(database, `users/${currentUser.uid}`), {
-                        nome,
-                        sobrenome,
-                        email,
-                        foto: downloadURL
-                    });
-                })
-                .then(() => {
-                    Swal.fire('Sucesso!', 'Conta criada com sucesso.', 'success');
-                    showSystem();
-                    loadUserData();
-                    startDeviceTracking();
-                })
-                .catch((error) => {
-                    Swal.fire('Erro!', error.message, 'error');
-                });
-        });
-
-        // Função para carregar dados do usuário
-        function loadUserData() {
-            const userRef = ref(database, `users/${currentUser.uid}`);
-            onValue(userRef, (snapshot) => {
-                const userData = snapshot.val();
-                console.log('Dados do usuário:', userData);
-            });
-        }
-
-        // Função para iniciar o rastreamento do dispositivo
-        function startDeviceTracking() {
-            if (navigator.geolocation) {
-                setInterval(() => {
-                    navigator.geolocation.getCurrentPosition((position) => {
-                        const { latitude, longitude } = position.coords;
-                        const batteryLevel = Math.random(); // Simula o nível da bateria
-                        const charging = Math.random() > 0.5; // Simula o status de carregamento
-
-                        // Obtém o endereço simplificado usando geocodificação reversa
-                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                const address = data.address || {};
-                                const simplifiedAddress = `${address.road || ''} ${address.house_number || ''}, ${address.suburb || ''}, ${address.city || ''}, ${address.state || ''}`;
-
-                                // Atualiza a localização do dispositivo no Firebase
-                                set(ref(database, `devices/${currentUser.uid}`), {
-                                    nome: currentUser.displayName || "Usuário",
-                                    sobrenome: currentUser.sobrenome || "",
-                                    latitude,
-                                    longitude,
-                                    lastUpdate: Date.now(),
-                                    batteryLevel,
-                                    charging,
-                                    address: simplifiedAddress,
-                                    foto: currentUser.foto || ""
-                                });
-                            });
-                    }, (error) => {
-                        console.error('Erro ao obter localização:', error);
-                    }, {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    });
-                }, 60000); // Atualiza a cada 60 segundos
-            } else {
-                Swal.fire('Erro!', 'Geolocalização não suportada.', 'error');
-            }
-        }
-
-        // Função para atualizar o mapa e a lista de dispositivos
-        function updateDevices(devices) {
-            const deviceList = document.getElementById('device-list');
-            deviceList.innerHTML = '';
-
-            for (const deviceId in devices) {
-                const { nome, sobrenome, latitude, longitude, lastUpdate, batteryLevel, charging, address, foto } = devices[deviceId];
-                deviceList.innerHTML += `
-                    <div class="device-item bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
-                        <div class="flex items-center">
-                            ${foto ? `<img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mr-4">` : ''}
-                            <div>
-                                <div class="font-semibold">${nome} ${sobrenome}</div>
-                                <div class="text-sm text-gray-600">${address}</div>
-                                <div class="text-xs text-gray-500">Última atualização: ${new Date(lastUpdate).toLocaleString()}</div>
-                                <div class="text-xs text-gray-500">
-                                    <i class="fas fa-battery-${batteryLevel > 80 ? 'full' : batteryLevel > 50 ? 'three-quarters' : batteryLevel > 20 ? 'half' : 'quarter'}"></i>
-                                    ${Math.round(batteryLevel * 100)}% ${charging ? '(Carregando)' : ''}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                // Atualiza o marcador no mapa
-                if (markers[deviceId]) {
-                    markers[deviceId].setLatLng([latitude, longitude]);
-                } else {
-                    const icon = foto ? L.icon({
-                        iconUrl: foto,
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 40],
-                        popupAnchor: [0, -40]
-                    }) : L.icon({
-                        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34]
-                    });
-
-                    markers[deviceId] = L.marker([latitude, longitude], { icon }).addTo(map)
-                        .bindPopup(`
-                            <div class="text-center">
-                                <img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mx-auto mb-2">
-                                <div class="font-semibold">${nome} ${sobrenome}</div>
-                                <div class="text-sm">${address}</div>
-                                <div class="text-xs">
-                                    <i class="fas fa-battery-${batteryLevel > 80 ? 'full' : batteryLevel > 50 ? 'three-quarters' : batteryLevel > 20 ? 'half' : 'quarter'}"></i>
-                                    ${Math.round(batteryLevel * 100)}% ${charging ? '(Carregando)' : ''}
-                                </div>
-                            </div>
-                        `).openPopup();
-                }
-            }
-        }
-
-        // Escuta atualizações em tempo real no Firebase
-        const devicesRef = ref(database, 'devices');
-        onValue(devicesRef, (snapshot) => {
-            updateDevices(snapshot.val() || {});
-        });
-
-        // Botão de menu para dispositivos móveis
-        document.getElementById('menu-button').addEventListener('click', () => {
-            document.querySelector('.sidebar').classList.toggle('open');
-        });
-
-        // Navegação entre login e cadastro
-        document.getElementById('criar-conta').addEventListener('click', (e) => {
-            e.preventDefault();
-            showCadastro();
-        });
-        document.getElementById('fazer-login').addEventListener('click', (e) => {
-            e.preventDefault();
-            showLogin();
-        });
-
-        // Logout
-        document.getElementById('logout').addEventListener('click', () => {
-            signOut(auth).then(() => {
-                showLogin();
-            }).catch((error) => {
-                Swal.fire('Erro!', error.message, 'error');
-            });
-        });
-    </script>
-
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<body>
+  <div id="map"></div>
+  <div class="info-container" id="device-info">
+    <div class="info-item"><span>Nome do Dispositivo:</span> Carregando...</div>
+    <div class="info-item"><span>Nível de Bateria:</span> Carregando...</div>
+    <div class="info-item"><span>Endereço:</span> Carregando...</div>
+    <div class="info-item"><span>Cidade:</span> Carregando...</div>
+    <div class="info-item"><span>Estado:</span> Carregando...</div>
+    <div class="info-item"><span>País:</span> Carregando...</div>
+  </div>
+  <div class="notification" id="notification"></div>
 </body>
 </html>
