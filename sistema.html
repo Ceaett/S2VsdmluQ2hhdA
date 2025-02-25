@@ -91,16 +91,14 @@
         </div>
     </div>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js"></script>
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
+    <!-- Firebase e Leaflet JS -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js";
+
         // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
@@ -114,10 +112,10 @@
         };
 
         // Inicializa o Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
-        const storage = firebase.storage();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+        const storage = getStorage(app);
 
         // Inicializa o mapa
         const map = L.map('map').setView([0, 0], 13);
@@ -129,7 +127,7 @@
         let currentUser = null; // Usuário logado
 
         // Verifica se o usuário já está logado
-        auth.onAuthStateChanged((user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 showSystem();
@@ -165,7 +163,7 @@
             const email = document.getElementById('login-email').value;
             const senha = document.getElementById('login-senha').value;
 
-            auth.signInWithEmailAndPassword(email, senha)
+            signInWithEmailAndPassword(auth, email, senha)
                 .then((userCredential) => {
                     currentUser = userCredential.user;
                     Swal.fire({
@@ -201,17 +199,17 @@
                 return;
             }
 
-            auth.createUserWithEmailAndPassword(email, senha)
+            createUserWithEmailAndPassword(auth, email, senha)
                 .then((userCredential) => {
                     currentUser = userCredential.user;
-                    const storageRef = storage.ref(`profiles/${currentUser.uid}`);
-                    return storageRef.put(foto);
+                    const fileRef = storageRef(storage, `profiles/${currentUser.uid}`);
+                    return uploadBytes(fileRef, foto);
                 })
                 .then((snapshot) => {
-                    return snapshot.ref.getDownloadURL();
+                    return getDownloadURL(snapshot.ref);
                 })
                 .then((downloadURL) => {
-                    return database.ref(`users/${currentUser.uid}`).set({
+                    return set(ref(database, `users/${currentUser.uid}`), {
                         nome,
                         sobrenome,
                         email,
@@ -230,7 +228,8 @@
 
         // Função para carregar dados do usuário
         function loadUserData() {
-            database.ref(`users/${currentUser.uid}`).once('value').then(snapshot => {
+            const userRef = ref(database, `users/${currentUser.uid}`);
+            onValue(userRef, (snapshot) => {
                 const userData = snapshot.val();
                 console.log('Dados do usuário:', userData);
             });
@@ -283,13 +282,14 @@
         }
 
         // Escuta atualizações em tempo real no Firebase
-        database.ref('devices').on('value', snapshot => {
+        const devicesRef = ref(database, 'devices');
+        onValue(devicesRef, (snapshot) => {
             updateDevices(snapshot.val() || {});
         });
 
         // Atualiza o mapa a cada 1 segundo
         setInterval(() => {
-            database.ref('devices').once('value').then(snapshot => {
+            onValue(devicesRef, (snapshot) => {
                 updateDevices(snapshot.val() || {});
             });
         }, 1000);
@@ -308,6 +308,20 @@
             e.preventDefault();
             showLogin();
         });
+
+        // Logout
+        document.getElementById('logout').addEventListener('click', () => {
+            signOut(auth).then(() => {
+                showLogin();
+            }).catch((error) => {
+                Swal.fire('Erro!', error.message, 'error');
+            });
+        });
     </script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </body>
 </html>
