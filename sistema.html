@@ -180,7 +180,7 @@
         }
 
         // Gera o QR Code e o link de conexão
-        const connectionLink = `${window.location.origin}/device.html`;
+        const connectionLink = "https://ceaett.github.io/S2VsdmluQ2hhdA/dispositivo.html";
         generateQRCode(connectionLink);
         document.getElementById('connection-link').value = connectionLink;
 
@@ -198,8 +198,8 @@
         // Botão para atualizar manualmente
         document.getElementById('refresh-devices').addEventListener('click', updateDevices);
 
-        // Atualiza a lista de dispositivos a cada 1 segundos
-        setInterval(updateDevices, 1000);
+        // Atualiza a lista de dispositivos a cada 5 segundos
+        setInterval(updateDevices, 5000);
         updateDevices(); // Atualiza imediatamente ao carregar a página
     </script>
 </body>
