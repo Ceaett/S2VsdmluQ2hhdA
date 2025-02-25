@@ -3,61 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Rastreamento</title>
+    <title>K - Monitoramento</title>
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <!-- Animate.css -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         #map {
-            height: 400px;
+            height: 70vh;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .device-item {
-            transition: all 0.3s ease;
+        .sidebar {
+            width: 300px;
+            transition: transform 0.3s ease;
         }
-        .device-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto p-4">
-        <h1 class="text-4xl font-bold text-center text-blue-600 mb-8 animate__animated animate__fadeInDown">
-            <i class="fas fa-map-marker-alt mr-2"></i>Sistema de Rastreamento
-        </h1>
+    <!-- Barra Lateral -->
+    <div class="sidebar bg-white h-screen fixed left-0 top-0 shadow-lg p-4">
+        <h1 class="text-2xl font-bold text-blue-600 mb-8">K - Monitoramento</h1>
+        <ul class="space-y-4">
+            <li><a href="#" id="meu-perfil" class="text-gray-700 hover:text-blue-600"><i class="fas fa-user mr-2"></i>Meu Perfil</a></li>
+            <li><a href="#" id="meu-dispositivo" class="text-gray-700 hover:text-blue-600"><i class="fas fa-mobile-alt mr-2"></i>Meu Dispositivo</a></li>
+            <li><a href="#" id="compartilhar" class="text-gray-700 hover:text-blue-600"><i class="fas fa-share-alt mr-2"></i>Compartilhar Dispositivos</a></li>
+            <li><a href="#" id="logout" class="text-red-500 hover:text-red-700"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a></li>
+        </ul>
+    </div>
 
+    <!-- Conteúdo Principal -->
+    <div class="ml-0 md:ml-80 p-4">
         <!-- Mapa -->
-        <div id="map" class="mb-8 animate__animated animate__fadeIn"></div>
+        <div id="map" class="mb-8"></div>
 
-        <!-- QR Code e Link -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8 animate__animated animate__fadeInUp">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
-                <i class="fas fa-qrcode mr-2"></i>Conectar Dispositivo
-            </h2>
-            <div id="qr-code" class="flex justify-center mb-4"></div>
-            <div class="flex items-center justify-center">
-                <input type="text" id="connection-link" value="" readonly class="border p-2 rounded-l-lg w-64">
-                <button id="copy-link" class="bg-blue-500 text-white p-2 rounded-r-lg hover:bg-blue-600">
-                    <i class="fas fa-copy"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Lista de Dispositivos -->
-        <div class="bg-white p-6 rounded-lg shadow-md animate__animated animate__fadeInUp">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
-                <i class="fas fa-device-mobile mr-2"></i>Dispositivos Conectados
-            </h2>
-            <button id="refresh-devices" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 mb-4">
-                <i class="fas fa-sync-alt mr-2"></i>Atualizar Lista
-            </button>
+        <!-- Dashboard -->
+        <div id="dashboard" class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h2>
             <div id="device-list" class="space-y-4">
                 <div class="device-item bg-gray-50 p-4 rounded-lg">
                     Aguardando conexão do dispositivo...
@@ -66,13 +58,58 @@
         </div>
     </div>
 
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Modais -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-lg w-96">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">Login</h2>
+            <input type="email" id="login-email" placeholder="E-mail" class="border p-2 rounded-lg w-full mb-4">
+            <input type="password" id="login-senha" placeholder="Senha" class="border p-2 rounded-lg w-full mb-4">
+            <button id="btn-login" class="bg-blue-500 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-600">Entrar</button>
+            <p class="text-center mt-4">Não tem uma conta? <a href="#" id="criar-conta" class="text-blue-500 hover:text-blue-700">Crie uma</a></p>
+        </div>
+    </div>
+
+    <div id="cadastro-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-lg w-96">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">Criar Conta</h2>
+            <input type="text" id="cadastro-nome" placeholder="Nome" class="border p-2 rounded-lg w-full mb-4">
+            <input type="text" id="cadastro-sobrenome" placeholder="Sobrenome" class="border p-2 rounded-lg w-full mb-4">
+            <input type="email" id="cadastro-email" placeholder="E-mail" class="border p-2 rounded-lg w-full mb-4">
+            <input type="password" id="cadastro-senha" placeholder="Senha" class="border p-2 rounded-lg w-full mb-4">
+            <input type="file" id="cadastro-foto" accept="image/*" class="mb-4">
+            <button id="btn-cadastro" class="bg-blue-500 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-600">Criar Conta</button>
+            <p class="text-center mt-4">Já tem uma conta? <a href="#" id="fazer-login" class="text-blue-500 hover:text-blue-700">Faça login</a></p>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage.js"></script>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- QRCode.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
+            authDomain: "kmonitoramento-1e504.firebaseapp.com",
+            databaseURL: "https://kmonitoramento-1e504-default-rtdb.firebaseio.com",
+            projectId: "kmonitoramento-1e504",
+            storageBucket: "kmonitoramento-1e504.firebasestorage.app",
+            messagingSenderId: "1036253657697",
+            appId: "1:1036253657697:web:6077a46bc9b58ae5ac0820",
+            measurementId: "G-LNM4FPTNRH"
+        };
+
+        // Inicializa o Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const storage = firebase.storage();
+
         // Inicializa o mapa
         const map = L.map('map').setView([0, 0], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -80,40 +117,98 @@
         }).addTo(map);
 
         let markers = {}; // Armazena os marcadores dos dispositivos
+        let currentUser = null; // Usuário logado
 
-        // Função para gerar QR Code
-        function generateQRCode(text) {
-            const qrCodeElement = document.getElementById('qr-code');
-            qrCodeElement.innerHTML = '';
-            new QRCode(qrCodeElement, {
-                text: text,
-                width: 128,
-                height: 128
+        // Função para mostrar o modal de login
+        document.getElementById('criar-conta').addEventListener('click', () => {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('cadastro-modal').classList.remove('hidden');
+        });
+
+        // Função para mostrar o modal de cadastro
+        document.getElementById('fazer-login').addEventListener('click', () => {
+            document.getElementById('cadastro-modal').classList.add('hidden');
+            document.getElementById('login-modal').classList.remove('hidden');
+        });
+
+        // Função para fazer login
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
+
+            auth.signInWithEmailAndPassword(email, senha)
+                .then((userCredential) => {
+                    currentUser = userCredential.user;
+                    document.getElementById('login-modal').classList.add('hidden');
+                    Swal.fire('Sucesso!', 'Login realizado com sucesso.', 'success');
+                    loadUserData();
+                })
+                .catch((error) => {
+                    Swal.fire('Erro!', error.message, 'error');
+                });
+        });
+
+        // Função para criar conta
+        document.getElementById('btn-cadastro').addEventListener('click', () => {
+            const nome = document.getElementById('cadastro-nome').value;
+            const sobrenome = document.getElementById('cadastro-sobrenome').value;
+            const email = document.getElementById('cadastro-email').value;
+            const senha = document.getElementById('cadastro-senha').value;
+            const foto = document.getElementById('cadastro-foto').files[0];
+
+            if (!nome || !sobrenome || !email || !senha || !foto) {
+                Swal.fire('Erro!', 'Preencha todos os campos.', 'error');
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, senha)
+                .then((userCredential) => {
+                    currentUser = userCredential.user;
+                    const storageRef = storage.ref(`profiles/${currentUser.uid}`);
+                    return storageRef.put(foto);
+                })
+                .then((snapshot) => {
+                    return snapshot.ref.getDownloadURL();
+                })
+                .then((downloadURL) => {
+                    return database.ref(`users/${currentUser.uid}`).set({
+                        nome,
+                        sobrenome,
+                        email,
+                        foto: downloadURL
+                    });
+                })
+                .then(() => {
+                    document.getElementById('cadastro-modal').classList.add('hidden');
+                    Swal.fire('Sucesso!', 'Conta criada com sucesso.', 'success');
+                    loadUserData();
+                })
+                .catch((error) => {
+                    Swal.fire('Erro!', error.message, 'error');
+                });
+        });
+
+        // Função para carregar dados do usuário
+        function loadUserData() {
+            database.ref(`users/${currentUser.uid}`).once('value').then(snapshot => {
+                const userData = snapshot.val();
+                console.log('Dados do usuário:', userData);
             });
         }
 
-        // Função para atualizar a lista de dispositivos e o mapa
-        function updateDevices() {
-            const devices = JSON.parse(localStorage.getItem('devices')) || {};
+        // Função para atualizar o mapa e a lista de dispositivos
+        function updateDevices(devices) {
             const deviceList = document.getElementById('device-list');
             deviceList.innerHTML = '';
 
-            // Remove marcadores de dispositivos excluídos
-            for (const deviceId in markers) {
-                if (!devices[deviceId]) {
-                    map.removeLayer(markers[deviceId]);
-                    delete markers[deviceId];
-                }
-            }
-
             for (const deviceId in devices) {
-                const { name, latitude, longitude, lastUpdate, profilePhoto, batteryLevel, charging } = devices[deviceId];
+                const { nome, sobrenome, latitude, longitude, lastUpdate, foto, batteryLevel, charging } = devices[deviceId];
                 deviceList.innerHTML += `
                     <div class="device-item bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
                         <div class="flex items-center">
-                            ${profilePhoto ? `<img src="${profilePhoto}" alt="${name}" class="w-10 h-10 rounded-full mr-4">` : ''}
+                            ${foto ? `<img src="${foto}" alt="${nome}" class="w-10 h-10 rounded-full mr-4">` : ''}
                             <div>
-                                <div class="font-semibold">${name || `Dispositivo ${deviceId}`}</div>
+                                <div class="font-semibold">${nome} ${sobrenome}</div>
                                 <div class="text-sm text-gray-600">Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}</div>
                                 <div class="text-xs text-gray-500">Última atualização: ${new Date(lastUpdate).toLocaleString()}</div>
                                 <div class="text-xs text-gray-500">
@@ -122,9 +217,6 @@
                                 </div>
                             </div>
                         </div>
-                        <button onclick="deleteDevice('${deviceId}')" class="text-red-500 hover:text-red-700">
-                            <i class="fas fa-trash"></i>
-                        </button>
                     </div>
                 `;
 
@@ -132,8 +224,8 @@
                 if (markers[deviceId]) {
                     markers[deviceId].setLatLng([latitude, longitude]);
                 } else {
-                    const icon = profilePhoto ? L.icon({
-                        iconUrl: profilePhoto,
+                    const icon = foto ? L.icon({
+                        iconUrl: foto,
                         iconSize: [40, 40],
                         iconAnchor: [20, 40],
                         popupAnchor: [0, -40]
@@ -145,62 +237,22 @@
                     });
 
                     markers[deviceId] = L.marker([latitude, longitude], { icon }).addTo(map)
-                        .bindPopup(`${name || `Dispositivo ${deviceId}`}`).openPopup();
+                        .bindPopup(`${nome} ${sobrenome}`).openPopup();
                 }
-            }
-
-            if (Object.keys(devices).length === 0) {
-                deviceList.innerHTML = `
-                    <div class="device-item bg-gray-50 p-4 rounded-lg">
-                        Nenhum dispositivo conectado.
-                    </div>
-                `;
             }
         }
 
-        // Função para excluir um dispositivo
-        function deleteDevice(deviceId) {
-            Swal.fire({
-                title: 'Tem certeza?',
-                text: "Você não poderá reverter isso!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sim, excluir!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const devices = JSON.parse(localStorage.getItem('devices')) || {};
-                    delete devices[deviceId];
-                    localStorage.setItem('devices', JSON.stringify(devices));
-                    updateDevices();
-                    Swal.fire('Excluído!', 'O dispositivo foi removido.', 'success');
-                }
-            });
-        }
-
-        // Gera o QR Code e o link de conexão
-        const connectionLink = "https://ceaett.github.io/S2VsdmluQ2hhdA/dispositivo.html";
-        generateQRCode(connectionLink);
-        document.getElementById('connection-link').value = connectionLink;
-
-        // Botão para copiar o link
-        document.getElementById('copy-link').addEventListener('click', () => {
-            navigator.clipboard.writeText(connectionLink).then(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Link copiado!',
-                    text: 'O link de conexão foi copiado para a área de transferência.',
-                });
-            });
+        // Escuta atualizações em tempo real no Firebase
+        database.ref('devices').on('value', snapshot => {
+            updateDevices(snapshot.val() || {});
         });
 
-        // Botão para atualizar manualmente
-        document.getElementById('refresh-devices').addEventListener('click', updateDevices);
-
-        // Atualiza a lista de dispositivos a cada 5 segundos
-        setInterval(updateDevices, 5000);
-        updateDevices(); // Atualiza imediatamente ao carregar a página
+        // Atualiza o mapa a cada 1 segundo
+        setInterval(() => {
+            database.ref('devices').once('value').then(snapshot => {
+                updateDevices(snapshot.val() || {});
+            });
+        }, 1000);
     </script>
 </body>
 </html>
