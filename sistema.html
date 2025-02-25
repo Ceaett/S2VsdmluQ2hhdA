@@ -234,15 +234,23 @@
                     const batteryLevel = Math.random(); // Simula o nível da bateria
                     const charging = Math.random() > 0.5; // Simula o status de carregamento
 
-                    // Atualiza a localização do dispositivo no Firebase
-                    set(ref(database, `devices/${currentUser.uid}`), {
-                        nome: currentUser.displayName || "Usuário",
-                        latitude,
-                        longitude,
-                        lastUpdate: Date.now(),
-                        batteryLevel,
-                        charging
-                    });
+                    // Obtém o endereço completo usando geocodificação reversa
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const address = data.display_name || "Endereço não disponível";
+
+                            // Atualiza a localização do dispositivo no Firebase
+                            set(ref(database, `devices/${currentUser.uid}`), {
+                                nome: currentUser.displayName || "Usuário",
+                                latitude,
+                                longitude,
+                                lastUpdate: Date.now(),
+                                batteryLevel,
+                                charging,
+                                address
+                            });
+                        });
                 }, (error) => {
                     console.error('Erro ao obter localização:', error);
                 }, {
@@ -261,13 +269,13 @@
             deviceList.innerHTML = '';
 
             for (const deviceId in devices) {
-                const { nome, latitude, longitude, lastUpdate, batteryLevel, charging } = devices[deviceId];
+                const { nome, latitude, longitude, lastUpdate, batteryLevel, charging, address } = devices[deviceId];
                 deviceList.innerHTML += `
                     <div class="device-item bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
                         <div class="flex items-center">
                             <div>
                                 <div class="font-semibold">${nome}</div>
-                                <div class="text-sm text-gray-600">Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}</div>
+                                <div class="text-sm text-gray-600">${address}</div>
                                 <div class="text-xs text-gray-500">Última atualização: ${new Date(lastUpdate).toLocaleString()}</div>
                                 <div class="text-xs text-gray-500">
                                     <i class="fas fa-battery-${batteryLevel > 80 ? 'full' : batteryLevel > 50 ? 'three-quarters' : batteryLevel > 20 ? 'half' : 'quarter'}"></i>
@@ -283,7 +291,17 @@
                     markers[deviceId].setLatLng([latitude, longitude]);
                 } else {
                     markers[deviceId] = L.marker([latitude, longitude]).addTo(map)
-                        .bindPopup(`${nome}`).openPopup();
+                        .bindPopup(`
+                            <div class="text-center">
+                                <img src="${devices[deviceId].foto}" alt="${nome}" class="w-10 h-10 rounded-full mx-auto mb-2">
+                                <div class="font-semibold">${nome}</div>
+                                <div class="text-sm">${address}</div>
+                                <div class="text-xs">
+                                    <i class="fas fa-battery-${batteryLevel > 80 ? 'full' : batteryLevel > 50 ? 'three-quarters' : batteryLevel > 20 ? 'half' : 'quarter'}"></i>
+                                    ${Math.round(batteryLevel * 100)}% ${charging ? '(Carregando)' : ''}
+                                </div>
+                            </div>
+                        `).openPopup();
                 }
             }
         }
