@@ -82,17 +82,20 @@
             }
         });
 
-        // Função para obter localização do dispositivo
-        function getLocation() {
-            if (navigator.geolocation) {
+        // Função para obter localização e status da bateria
+        function getLocationAndBattery() {
+            if (navigator.geolocation && navigator.getBattery) {
                 navigator.geolocation.getCurrentPosition(sendLocation, showError);
+                navigator.getBattery().then(battery => {
+                    sendBatteryStatus(battery);
+                });
             } else {
-                document.getElementById('status').innerText = "Geolocalização não é suportada por este navegador.";
+                document.getElementById('status').innerText = "Geolocalização ou status da bateria não são suportados por este navegador.";
                 document.getElementById('retry-btn').classList.remove('hidden');
             }
         }
 
-        // Função para enviar a localização para o localStorage
+        // Função para enviar a localização e o status da bateria para o localStorage
         function sendLocation(position) {
             const latitude = position.coords.latitude;
             const longitude = position.coords.longitude;
@@ -110,14 +113,16 @@
             // Gera um ID único para o dispositivo
             const deviceId = Math.random().toString(36).substring(2, 9);
 
-            // Salva a localização no localStorage
+            // Salva a localização e o status da bateria no localStorage
             const devices = JSON.parse(localStorage.getItem('devices')) || {};
             devices[deviceId] = { 
                 name: deviceName, 
                 latitude, 
                 longitude, 
                 lastUpdate: Date.now(),
-                profilePhoto
+                profilePhoto,
+                batteryLevel: batteryLevel,
+                charging: charging
             };
             localStorage.setItem('devices', JSON.stringify(devices));
 
@@ -129,6 +134,23 @@
             }).then(() => {
                 window.close(); // Fecha a página após conectar
             });
+        }
+
+        // Função para enviar o status da bateria
+        function sendBatteryStatus(battery) {
+            const batteryLevel = battery.level;
+            const charging = battery.charging;
+
+            // Atualiza o status da bateria no localStorage
+            const devices = JSON.parse(localStorage.getItem('devices')) || {};
+            for (const deviceId in devices) {
+                if (devices[deviceId].name === document.getElementById('device-name').value.trim()) {
+                    devices[deviceId].batteryLevel = batteryLevel;
+                    devices[deviceId].charging = charging;
+                    break;
+                }
+            }
+            localStorage.setItem('devices', JSON.stringify(devices));
         }
 
         // Função para tratar erros de geolocalização
@@ -152,10 +174,10 @@
         }
 
         // Botão para conectar
-        document.getElementById('connect-btn').addEventListener('click', getLocation);
+        document.getElementById('connect-btn').addEventListener('click', getLocationAndBattery);
 
         // Botão para tentar novamente
-        document.getElementById('retry-btn').addEventListener('click', getLocation);
+        document.getElementById('retry-btn').addEventListener('click', getLocationAndBattery);
     </script>
 </body>
 </html>
