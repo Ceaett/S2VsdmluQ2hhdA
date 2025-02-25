@@ -18,6 +18,17 @@
             height: 100vh;
             background-color: #f3f4f6;
         }
+        #profile-photo {
+            display: none;
+        }
+        .profile-photo-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -26,7 +37,19 @@
             <i class="fas fa-map-marker-alt mr-2"></i>Conectar Dispositivo
         </h1>
         <div id="status" class="text-lg text-gray-700 mb-4">Conectando...</div>
+        
+        <!-- Foto de Perfil -->
+        <div class="mb-4">
+            <label for="profile-photo" class="cursor-pointer">
+                <img id="profile-photo-preview" src="https://via.placeholder.com/100" alt="Foto de Perfil" class="profile-photo-preview">
+                <input type="file" id="profile-photo" accept="image/*">
+            </label>
+        </div>
+
+        <!-- Nome do Dispositivo -->
         <input type="text" id="device-name" placeholder="Nome do Dispositivo" class="border p-2 rounded-lg w-full mb-4">
+
+        <!-- Botão de Conexão -->
         <button id="connect-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
             <i class="fas fa-link mr-2"></i>Conectar
         </button>
@@ -38,6 +61,27 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        let profilePhoto = null;
+
+        // Função para carregar a foto de perfil
+        document.getElementById('profile-photo').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePhoto = e.target.result;
+                    document.getElementById('profile-photo-preview').src = profilePhoto;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Por favor, selecione uma imagem válida.',
+                });
+            }
+        });
+
         // Função para obter localização do dispositivo
         function getLocation() {
             if (navigator.geolocation) {
@@ -72,7 +116,8 @@
                 name: deviceName, 
                 latitude, 
                 longitude, 
-                lastUpdate: Date.now() 
+                lastUpdate: Date.now(),
+                profilePhoto
             };
             localStorage.setItem('devices', JSON.stringify(devices));
 
