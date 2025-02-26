@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa com Menu Suspenso e Localização em Tempo Real</title>
+    <!-- Importação da fonte Roboto do Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        /* Estilos anteriores (mantidos) */
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Menu Suspenso -->
+    <div class="menu">
+        <button class="menu-button" onclick="toggleMenu()">Menu</button>
+        <div class="menu-content" id="menuContent">
+            <a href="#" onclick="handleOption('Meu Dispositivo')">Meu Dispositivo</a>
+            <a href="#" onclick="handleOption('Conectados')">Conectados</a>
+            <a href="#" onclick="handleOption('Adicionar')">Adicionar</a>
+        </div>
+    </div>
+
+    <!-- Modal (pop-up) para "Meu Dispositivo" -->
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="deviceModal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Meu Dispositivo</h2>
+        <label for="deviceName">Nome do Dispositivo:</label>
+        <input type="text" id="deviceName" placeholder="Digite o nome do dispositivo">
+        <label for="devicePhoto">Foto do Dispositivo:</label>
+        <input type="file" id="devicePhoto" accept="image/*">
+        <label>ID do Dispositivo:</label>
+        <p id="deviceId"><span onclick="copyDeviceId()">Copiar</span></p>
+        <label>Bateria:</label>
+        <p id="batteryLevel">Carregando...</p>
+        <label>Endereço:</label>
+        <p id="deviceAddress">Carregando...</p>
+        <label>Cidade:</label>
+        <p id="deviceCity">Carregando...</p>
+        <label>Estado:</label>
+        <p id="deviceState">Carregando...</p>
+        <label>Última Atualização:</label>
+        <p id="lastUpdate">Carregando...</p>
+        <button onclick="saveDeviceInfo()">Salvar</button>
+    </div>
+
+    <!-- Modal (pop-up) para "Conectados" -->
+    <div class="modal" id="connectedDevicesModal">
+        <span class="close" onclick="closeConnectedDevicesModal()">&times;</span>
+        <h2>Dispositivos Conectados</h2>
+        <div class="connected-devices" id="connectedDevicesList">
+            <!-- Lista de dispositivos conectados será preenchida aqui -->
+        </div>
+    </div>
+
+    <!-- Modal (pop-up) para "Adicionar Dispositivo" -->
+    <div class="modal" id="addDeviceModal">
+        <span class="close" onclick="closeAddDeviceModal()">&times;</span>
+        <h2>Adicionar Dispositivo</h2>
+        <label for="deviceIdInput">ID do Dispositivo:</label>
+        <input type="text" id="deviceIdInput" placeholder="Digite o ID do dispositivo">
+        <button onclick="addDevice()">Adicionar</button>
+    </div>
+
+    <!-- Modal (pop-up) para detalhes do dispositivo -->
+    <div class="device-details-modal" id="deviceDetailsModal">
+        <span class="close" onclick="closeDeviceDetailsModal()">&times;</span>
+        <h2 id="deviceDetailsName"></h2>
+        <p><strong>Bateria:</strong> <span id="deviceDetailsBattery"></span></p>
+        <p><strong>Endereço:</strong> <span id="deviceDetailsAddress"></span></p>
+        <p><strong>Cidade:</strong> <span id="deviceDetailsCity"></span></p>
+        <p><strong>Estado:</strong> <span id="deviceDetailsState"></span></p>
+        <p><strong>Última Atualização:</strong> <span id="deviceDetailsLastUpdate"></span></p>
+        <button onclick="deleteDevice()">Excluir Dispositivo</button>
+    </div>
+
+    <!-- Firebase e Leaflet -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
+
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
+            authDomain: "kmonitoramento-1e504.firebaseapp.com",
+            databaseURL: "https://kmonitoramento-1e504-default-rtdb.firebaseio.com",
+            projectId: "kmonitoramento-1e504",
+            storageBucket: "kmonitoramento-1e504.firebasestorage.app",
+            messagingSenderId: "1036253657697",
+            appId: "1:1036253657697:web:6077a46bc9b58ae5ac0820",
+            measurementId: "G-LNM4FPTNRH"
+        };
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Variáveis globais
+        let currentDeviceId = null; // ID do dispositivo atualmente selecionado
+        let connectedDevices = []; // Lista de dispositivos conectados
+        let deviceMarkers = {}; // Mapa de marcadores dos dispositivos conectados
+
+        // Função para carregar dispositivos do Firebase
+        function loadDevicesFromFirebase() {
+            const devicesRef = ref(database, 'devices');
+            onValue(devicesRef, (snapshot) => {
+                connectedDevices = [];
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach((deviceId) => {
+                        connectedDevices.push(data[deviceId]);
+                    });
+                }
+                updateConnectedDevicesList();
+                updateDeviceMarkers();
+            });
+        }
+
+        // Função para adicionar um dispositivo ao Firebase
+        async function addDeviceToFirebase(device) {
+            const deviceRef = ref(database, `devices/${device.id}`);
+            await set(deviceRef, device);
+        }
+
+        // Função para remover um dispositivo do Firebase
+        async function removeDeviceFromFirebase(deviceId) {
+            const deviceRef = ref(database, `devices/${deviceId}`);
+            await remove(deviceRef);
+        }
+
+        // Função para validar o ID do dispositivo
+        function validateDeviceId(deviceId) {
+            return connectedDevices.every(device => device.id !== deviceId);
+        }
+
+        // Função para adicionar um dispositivo
+        function addDevice() {
+            const deviceId = document.getElementById('deviceIdInput').value.trim();
+            if (!deviceId) {
+                alert('Por favor, insira o ID do dispositivo.');
+                return;
+            }
+
+            if (!validateDeviceId(deviceId)) {
+                alert('ID do dispositivo já existe.');
+                return;
+            }
+
+            const newDevice = {
+                id: deviceId,
+                name: "Dispositivo " + deviceId,
+                photo: "https://via.placeholder.com/40",
+                battery: "75%",
+                address: "Endereço " + deviceId,
+                city: "Cidade " + deviceId,
+                state: "Estado " + deviceId,
+                lastUpdate: new Date().toLocaleString('pt-BR'),
+                lat: -23.5505 + Math.random() * 0.1, // Latitude aleatória
+                lng: -46.6333 + Math.random() * 0.1 // Longitude aleatória
+            };
+
+            addDeviceToFirebase(newDevice);
+            closeAddDeviceModal();
+        }
+
+        // Função para excluir um dispositivo
+        function deleteDevice() {
+            if (currentDeviceId) {
+                removeDeviceFromFirebase(currentDeviceId);
+                closeDeviceDetailsModal();
+            }
+        }
+
+        // Função para atualizar a lista de dispositivos conectados
+        function updateConnectedDevicesList() {
+            const connectedDevicesList = document.getElementById('connectedDevicesList');
+            connectedDevicesList.innerHTML = '';
+            connectedDevices.forEach(device => {
+                const deviceElement = document.createElement('div');
+                deviceElement.className = 'device';
+                deviceElement.innerHTML = `
+                    <img src="${device.photo}" alt="${device.name}">
+                    <p>${device.name}</p>
+                `;
+                deviceElement.onclick = () => openDeviceDetailsModal(device);
+                connectedDevicesList.appendChild(deviceElement);
+            });
+        }
+
+        // Função para atualizar os marcadores no mapa
+        function updateDeviceMarkers() {
+            Object.values(deviceMarkers).forEach(marker => marker.remove());
+            deviceMarkers = {};
+            connectedDevices.forEach(device => {
+                addDeviceToMap(device);
+            });
+        }
+
+        // Função para adicionar um dispositivo ao mapa
+        function addDeviceToMap(device) {
+            const deviceMarker = L.marker([device.lat, device.lng], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: `
+                        <div class="custom-marker">
+                            <img src="${device.photo}" alt="${device.name}">
+                        </div>
+                    `,
+                    iconSize: [50, 50]
+                })
+            }).addTo(map);
+
+            deviceMarker.bindPopup(`
+                <div class="leaflet-popup-content">
+                    <p><strong>${device.name}</strong></p>
+                    <p>${device.address}</p>
+                    <p>${device.city}, ${device.state}</p>
+                    <p class="battery">Bateria: ${device.battery}</p>
+                    <p class="update">Última atualização: ${device.lastUpdate}</p>
+                </div>
+            `, { closeButton: false });
+
+            deviceMarkers[device.id] = deviceMarker;
+        }
+
+        // Carrega os dispositivos ao iniciar
+        loadDevicesFromFirebase();
+    </script>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Variáveis globais
+        var map;
+        var marker;
+        var deviceName = "Dispositivo " + Math.floor(Math.random() * 1000); // Nome aleatório inicial
+        var devicePhoto = null;
+        var lastUpdate = new Date();
+        var batteryLevel = "N/A";
+        var deviceAddress = "Carregando...";
+        var deviceCity = "Carregando...";
+        var deviceState = "Carregando...";
+        var watchId = null; // ID do watcher de geolocalização
+        var connectedDevices = []; // Lista de dispositivos conectados
+        var deviceMarkers = {}; // Mapa de marcadores dos dispositivos conectados
+
+        // Inicializa o mapa
+        function initMap() {
+            map = L.map('map').setView([0, 0], 13);
+
+            // Adiciona o tile layer do OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Adiciona um marcador para a localização do usuário
+            marker = L.marker([0, 0], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: getMarkerHtml(),
+                    iconSize: [50, 50]
+                })
+            }).addTo(map);
+
+            // Adiciona um popup ao marcador
+            marker.bindPopup(getPopupContent(), {
+                closeButton: false
+            });
+
+            // Inicia o monitoramento da localização em tempo real
+            startWatchingLocation();
+        }
+
+        // Função para obter o HTML do marcador personalizado
+        function getMarkerHtml() {
+            var photoHtml = devicePhoto ? `<img src="${devicePhoto}" alt="Foto do Dispositivo">` : '';
+            return `
+                <div class="custom-marker">
+                    ${photoHtml}
+                </div>
+            `;
+        }
+
+        // Função para obter o conteúdo do popup
+        function getPopupContent() {
+            return `
+                <div class="leaflet-popup-content">
+                    <p><strong>${deviceName}</strong></p>
+                    <p>${deviceAddress}</p>
+                    <p>${deviceCity}, ${deviceState}</p>
+                    <p class="battery">Bateria: ${batteryLevel}</p>
+                    <p class="update">Última atualização: ${lastUpdate.toLocaleString('pt-BR')}</p>
+                </div>
+            `;
+        }
+
+        // Função para atualizar o marcador no mapa
+        function updateMarker() {
+            marker.setIcon(L.divIcon({
+                className: 'custom-marker',
+                html: getMarkerHtml(),
+                iconSize: [50, 50]
+            }));
+            marker.setPopupContent(getPopupContent());
+        }
+
+        // Função para iniciar o monitoramento da localização em tempo real
+        function startWatchingLocation() {
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(updateLocation, handleLocationError, {
+                    enableHighAccuracy: true, // Alta precisão
+                    maximumAge: 0, // Sem cache
+                    timeout: 5000 // Tempo máximo de espera
+                });
+            } else {
+                alert('Geolocalização não é suportada pelo seu navegador.');
+            }
+        }
+
+        // Função para parar o monitoramento da localização
+        function stopWatchingLocation() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+        }
+
+        // Função para atualizar a localização do usuário
+        function updateLocation(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            map.setView([lat, lng], 13);
+            marker.setLatLng([lat, lng]);
+
+            // Atualiza o endereço, cidade e estado
+            updateAddress(lat, lng);
+
+            // Atualiza a data e hora da última atualização
+            lastUpdate = new Date();
+            updateLastUpdate();
+
+            // Atualiza o popup
+            marker.setPopupContent(getPopupContent());
+        }
+
+        // Função para lidar com erros de geolocalização
+        function handleLocationError(error) {
+            alert('Erro ao obter localização: ' + error.message);
+        }
+
+        // Ajusta o tamanho do mapa quando a janela é redimensionada
+        window.addEventListener('resize', function() {
+            map.invalidateSize();
+        });
+
+        // Função para alternar a visibilidade do menu suspenso
+        function toggleMenu() {
+            var menuContent = document.getElementById('menuContent');
+            if (menuContent.style.display === 'block') {
+                menuContent.style.display = 'none';
+            } else {
+                menuContent.style.display = 'block';
+            }
+        }
+
+        // Fecha o menu se o usuário clicar fora dele
+        window.addEventListener('click', function(event) {
+            var menu = document.querySelector('.menu');
+            if (!menu.contains(event.target)) {
+                var menuContent = document.getElementById('menuContent');
+                menuContent.style.display = 'none';
+            }
+        });
+
+        // Função para abrir o modal de "Meu Dispositivo"
+        function openDeviceModal() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('deviceModal').style.display = 'block';
+            generateDeviceId(); // Gera um ID aleatório ao abrir o modal
+            updateBatteryLevel(); // Atualiza o nível da bateria
+        }
+
+        // Função para fechar o modal
+        function closeModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('deviceModal').style.display = 'none';
+        }
+
+        // Função para abrir o modal de "Conectados"
+        function openConnectedDevicesModal() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('connectedDevicesModal').style.display = 'block';
+            loadConnectedDevices(); // Carrega a lista de dispositivos conectados
+        }
+
+        // Função para fechar o modal de "Conectados"
+        function closeConnectedDevicesModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('connectedDevicesModal').style.display = 'none';
+        }
+
+        // Função para abrir o modal de "Adicionar Dispositivo"
+        function openAddDeviceModal() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('addDeviceModal').style.display = 'block';
+        }
+
+        // Função para fechar o modal de "Adicionar Dispositivo"
+        function closeAddDeviceModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('addDeviceModal').style.display = 'none';
+        }
+
+        // Função para abrir o modal de detalhes do dispositivo
+        function openDeviceDetailsModal(device) {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('deviceDetailsModal').style.display = 'block';
+            document.getElementById('deviceDetailsName').textContent = device.name;
+            document.getElementById('deviceDetailsBattery').textContent = device.battery;
+            document.getElementById('deviceDetailsAddress').textContent = device.address;
+            document.getElementById('deviceDetailsCity').textContent = device.city;
+            document.getElementById('deviceDetailsState').textContent = device.state;
+            document.getElementById('deviceDetailsLastUpdate').textContent = device.lastUpdate;
+        }
+
+        // Função para fechar o modal de detalhes do dispositivo
+        function closeDeviceDetailsModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('deviceDetailsModal').style.display = 'none';
+        }
+
+        // Função para carregar a lista de dispositivos conectados
+        function loadConnectedDevices() {
+            var connectedDevicesList = document.getElementById('connectedDevicesList');
+            connectedDevicesList.innerHTML = ''; // Limpa a lista
+
+            // Adiciona cada dispositivo à lista
+            connectedDevices.forEach(device => {
+                var deviceElement = document.createElement('div');
+                deviceElement.className = 'device';
+                deviceElement.innerHTML = `
+                    <img src="${device.photo}" alt="${device.name}">
+                    <p>${device.name}</p>
+                `;
+                deviceElement.onclick = () => openDeviceDetailsModal(device);
+                connectedDevicesList.appendChild(deviceElement);
+            });
+        }
+
+        // Função para adicionar um novo dispositivo
+        function addDevice() {
+            var deviceId = document.getElementById('deviceIdInput').value;
+            if (!deviceId) {
+                alert('Por favor, insira o ID do dispositivo.');
+                return;
+            }
+
+            // Simulação de dados do dispositivo (pode ser substituído por uma chamada ao backend)
+            var newDevice = {
+                id: deviceId,
+                name: "Dispositivo " + deviceId,
+                photo: "https://via.placeholder.com/40",
+                battery: "75%",
+                address: "Endereço " + deviceId,
+                city: "Cidade " + deviceId,
+                state: "Estado " + deviceId,
+                lastUpdate: new Date().toLocaleString('pt-BR'),
+                lat: -23.5505 + Math.random() * 0.1, // Latitude aleatória
+                lng: -46.6333 + Math.random() * 0.1 // Longitude aleatória
+            };
+
+            // Adiciona o dispositivo à lista de dispositivos conectados
+            connectedDevices.push(newDevice);
+
+            // Adiciona o dispositivo ao mapa
+            addDeviceToMap(newDevice);
+
+            // Atualiza a lista de dispositivos conectados
+            loadConnectedDevices();
+
+            // Fecha o modal de adicionar dispositivo
+            closeAddDeviceModal();
+        }
+
+        // Função para adicionar um dispositivo ao mapa
+        function addDeviceToMap(device) {
+            var deviceMarker = L.marker([device.lat, device.lng], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: `
+                        <div class="custom-marker">
+                            <img src="${device.photo}" alt="${device.name}">
+                        </div>
+                    `,
+                    iconSize: [50, 50]
+                })
+            }).addTo(map);
+
+            // Adiciona um popup ao marcador do dispositivo
+            deviceMarker.bindPopup(`
+                <div class="leaflet-popup-content">
+                    <p><strong>${device.name}</strong></p>
+                    <p>${device.address}</p>
+                    <p>${device.city}, ${device.state}</p>
+                    <p class="battery">Bateria: ${device.battery}</p>
+                    <p class="update">Última atualização: ${device.lastUpdate}</p>
+                </div>
+            `, { closeButton: false });
+
+            // Armazena o marcador no mapa de marcadores
+            deviceMarkers[device.id] = deviceMarker;
+        }
+
+        // Função para gerar um ID de dispositivo aleatório (12 caracteres)
+        function generateDeviceId() {
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var deviceId = '';
+            for (var i = 0; i < 12; i++) {
+                deviceId += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('deviceId').innerHTML = deviceId + ' <span onclick="copyDeviceId()">Copiar</span>';
+        }
+
+        // Função para copiar o ID do dispositivo
+        function copyDeviceId() {
+            var deviceId = document.getElementById('deviceId').textContent.split(' ')[0];
+            navigator.clipboard.writeText(deviceId).then(function() {
+                alert('ID copiado: ' + deviceId);
+            });
+        }
+
+        // Função para atualizar o nível da bateria
+        function updateBatteryLevel() {
+            if (navigator.getBattery) {
+                navigator.getBattery().then(function(battery) {
+                    batteryLevel = Math.round(battery.level * 100) + '%';
+                    document.getElementById('batteryLevel').textContent = batteryLevel;
+                    marker.setPopupContent(getPopupContent()); // Atualiza o popup
+                });
+            } else {
+                document.getElementById('batteryLevel').textContent = 'N/A';
+            }
+        }
+
+        // Função para atualizar o endereço, cidade e estado
+        function updateAddress(lat, lng) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    deviceAddress = data.address.road || 'Endereço não encontrado';
+                    deviceCity = data.address.city || data.address.town || data.address.village || 'Cidade não encontrada';
+                    deviceState = data.address.state || 'Estado não encontrado';
+                    document.getElementById('deviceAddress').textContent = deviceAddress;
+                    document.getElementById('deviceCity').textContent = deviceCity;
+                    document.getElementById('deviceState').textContent = deviceState;
+                    marker.setPopupContent(getPopupContent()); // Atualiza o popup
+                })
+                .catch(() => {
+                    document.getElementById('deviceAddress').textContent = 'Erro ao carregar endereço';
+                    document.getElementById('deviceCity').textContent = 'Erro ao carregar cidade';
+                    document.getElementById('deviceState').textContent = 'Erro ao carregar estado';
+                });
+        }
+
+        // Função para atualizar a data e hora da última atualização
+        function updateLastUpdate() {
+            var formattedDate = lastUpdate.toLocaleString('pt-BR');
+            document.getElementById('lastUpdate').textContent = formattedDate;
+        }
+
+        // Função para salvar as informações do dispositivo
+        function saveDeviceInfo() {
+            deviceName = document.getElementById('deviceName').value || deviceName;
+            var fileInput = document.getElementById('devicePhoto');
+            if (fileInput.files && fileInput.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    devicePhoto = e.target.result;
+                    updateMarker(); // Atualiza o marcador com a nova foto
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+            alert('Informações salvas:\nNome: ' + deviceName + '\nFoto: ' + (fileInput.files[0] ? fileInput.files[0].name : 'Nenhuma foto selecionada'));
+            closeModal();
+        }
+
+        // Função para lidar com a seleção de uma opção do menu
+        function handleOption(option) {
+            switch (option) {
+                case 'Meu Dispositivo':
+                    openDeviceModal();
+                    break;
+                case 'Conectados':
+                    openConnectedDevicesModal();
+                    break;
+                case 'Adicionar':
+                    openAddDeviceModal();
+                    break;
+            }
+        }
+
+        // Inicializa o mapa ao carregar a página
+        initMap();
+    </script>
+</body>
+</html>
