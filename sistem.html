@@ -8,7 +8,319 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        /* Estilos anteriores (mantidos) */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Roboto', sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Estilos para o menu suspenso */
+        .menu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        .menu-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .menu-button:hover {
+            background-color: #0056b3;
+        }
+
+        .menu-content {
+            display: none;
+            margin-top: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .menu-content a {
+            display: block;
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .menu-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Estilos para o modal (pop-up) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            width: 90%;
+            max-width: 400px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #333;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .modal label {
+            display: block;
+            margin: 15px 0 5px;
+            font-size: 14px;
+            color: #555;
+            font-weight: 400;
+        }
+
+        .modal input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .modal input[type="file"] {
+            width: 100%;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .modal p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #333;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal p span {
+            cursor: pointer;
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .modal p span:hover {
+            text-decoration: underline;
+        }
+
+        .modal button {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+        }
+
+        .modal button:hover {
+            background-color: #0056b3;
+        }
+
+        .modal .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #777;
+        }
+
+        .modal .close:hover {
+            color: #333;
+        }
+
+        /* Overlay para o modal */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        /* Estilos responsivos */
+        @media (max-width: 768px) {
+            .menu-button {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+
+            .menu-content a {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .modal {
+                padding: 20px;
+            }
+
+            .modal h2 {
+                font-size: 18px;
+            }
+
+            .modal button {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+
+        /* Estilos para o marcador personalizado */
+        .custom-marker {
+            background-color: white;
+            border-radius: 50%;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .custom-marker img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Estilos para o popup do marcador */
+        .leaflet-popup-content {
+            font-family: 'Roboto', sans-serif;
+            text-align: center;
+        }
+
+        .leaflet-popup-content p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .leaflet-popup-content .battery {
+            font-weight: 500;
+            color: #007bff;
+        }
+
+        .leaflet-popup-content .update {
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* Estilos para a lista de dispositivos conectados */
+        .connected-devices {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .connected-devices .device {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .connected-devices .device:hover {
+            background-color: #f1f1f1;
+        }
+
+        .connected-devices .device img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        .connected-devices .device p {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* Estilos para o modal de detalhes do dispositivo */
+        .device-details-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1002;
+            width: 90%;
+            max-width: 400px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .device-details-modal h2 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #333;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .device-details-modal p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .device-details-modal .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #777;
+        }
+
+        .device-details-modal .close:hover {
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -230,50 +542,24 @@
 
         // Carrega os dispositivos ao iniciar
         loadDevicesFromFirebase();
-    </script>
-
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        // Variáveis globais
-        var map;
-        var marker;
-        var deviceName = "Dispositivo " + Math.floor(Math.random() * 1000); // Nome aleatório inicial
-        var devicePhoto = null;
-        var lastUpdate = new Date();
-        var batteryLevel = "N/A";
-        var deviceAddress = "Carregando...";
-        var deviceCity = "Carregando...";
-        var deviceState = "Carregando...";
-        var watchId = null; // ID do watcher de geolocalização
-        var connectedDevices = []; // Lista de dispositivos conectados
-        var deviceMarkers = {}; // Mapa de marcadores dos dispositivos conectados
-
         // Inicializa o mapa
-        function initMap() {
-            map = L.map('map').setView([0, 0], 13);
+        var map = L.map('map').setView([0, 0], 13);
 
-            // Adiciona o tile layer do OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+        // Adiciona o tile layer do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
 
-            // Adiciona um marcador para a localização do usuário
-            marker = L.marker([0, 0], {
-                icon: L.divIcon({
-                    className: 'custom-marker',
-                    html: getMarkerHtml(),
-                    iconSize: [50, 50]
-                })
-            }).addTo(map);
-
-            // Adiciona um popup ao marcador
-            marker.bindPopup(getPopupContent(), {
-                closeButton: false
-            });
-
-            // Inicia o monitoramento da localização em tempo real
-            startWatchingLocation();
-        }
+        // Adiciona um marcador para a localização do usuário
+        var marker = L.marker([0, 0], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: getMarkerHtml(),
+                iconSize: [50, 50]
+            })
+        }).addTo(map);
 
         // Função para obter o HTML do marcador personalizado
         function getMarkerHtml() {
@@ -425,94 +711,14 @@
             document.getElementById('deviceDetailsCity').textContent = device.city;
             document.getElementById('deviceDetailsState').textContent = device.state;
             document.getElementById('deviceDetailsLastUpdate').textContent = device.lastUpdate;
+            currentDeviceId = device.id; // Armazena o ID do dispositivo selecionado
         }
 
         // Função para fechar o modal de detalhes do dispositivo
         function closeDeviceDetailsModal() {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('deviceDetailsModal').style.display = 'none';
-        }
-
-        // Função para carregar a lista de dispositivos conectados
-        function loadConnectedDevices() {
-            var connectedDevicesList = document.getElementById('connectedDevicesList');
-            connectedDevicesList.innerHTML = ''; // Limpa a lista
-
-            // Adiciona cada dispositivo à lista
-            connectedDevices.forEach(device => {
-                var deviceElement = document.createElement('div');
-                deviceElement.className = 'device';
-                deviceElement.innerHTML = `
-                    <img src="${device.photo}" alt="${device.name}">
-                    <p>${device.name}</p>
-                `;
-                deviceElement.onclick = () => openDeviceDetailsModal(device);
-                connectedDevicesList.appendChild(deviceElement);
-            });
-        }
-
-        // Função para adicionar um novo dispositivo
-        function addDevice() {
-            var deviceId = document.getElementById('deviceIdInput').value;
-            if (!deviceId) {
-                alert('Por favor, insira o ID do dispositivo.');
-                return;
-            }
-
-            // Simulação de dados do dispositivo (pode ser substituído por uma chamada ao backend)
-            var newDevice = {
-                id: deviceId,
-                name: "Dispositivo " + deviceId,
-                photo: "https://via.placeholder.com/40",
-                battery: "75%",
-                address: "Endereço " + deviceId,
-                city: "Cidade " + deviceId,
-                state: "Estado " + deviceId,
-                lastUpdate: new Date().toLocaleString('pt-BR'),
-                lat: -23.5505 + Math.random() * 0.1, // Latitude aleatória
-                lng: -46.6333 + Math.random() * 0.1 // Longitude aleatória
-            };
-
-            // Adiciona o dispositivo à lista de dispositivos conectados
-            connectedDevices.push(newDevice);
-
-            // Adiciona o dispositivo ao mapa
-            addDeviceToMap(newDevice);
-
-            // Atualiza a lista de dispositivos conectados
-            loadConnectedDevices();
-
-            // Fecha o modal de adicionar dispositivo
-            closeAddDeviceModal();
-        }
-
-        // Função para adicionar um dispositivo ao mapa
-        function addDeviceToMap(device) {
-            var deviceMarker = L.marker([device.lat, device.lng], {
-                icon: L.divIcon({
-                    className: 'custom-marker',
-                    html: `
-                        <div class="custom-marker">
-                            <img src="${device.photo}" alt="${device.name}">
-                        </div>
-                    `,
-                    iconSize: [50, 50]
-                })
-            }).addTo(map);
-
-            // Adiciona um popup ao marcador do dispositivo
-            deviceMarker.bindPopup(`
-                <div class="leaflet-popup-content">
-                    <p><strong>${device.name}</strong></p>
-                    <p>${device.address}</p>
-                    <p>${device.city}, ${device.state}</p>
-                    <p class="battery">Bateria: ${device.battery}</p>
-                    <p class="update">Última atualização: ${device.lastUpdate}</p>
-                </div>
-            `, { closeButton: false });
-
-            // Armazena o marcador no mapa de marcadores
-            deviceMarkers[device.id] = deviceMarker;
+            currentDeviceId = null; // Limpa o ID do dispositivo selecionado
         }
 
         // Função para gerar um ID de dispositivo aleatório (12 caracteres)
