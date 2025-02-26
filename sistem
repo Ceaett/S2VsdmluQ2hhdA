@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring System</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #dashboard {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 800px;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        #info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="dashboard">
+        <h1>Device Monitoring Dashboard</h1>
+        <div id="map"></div>
+        <div id="info">
+            <p>Battery: <span id="battery"></span></p>
+            <p>Address: <span id="address"></span></p>
+            <p>City: <span id="city"></span></p>
+            <p>State: <span id="state"></span></p>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
+            authDomain: "kmonitoramento-1e504.firebaseapp.com",
+            databaseURL: "https://kmonitoramento-1e504-default-rtdb.firebaseio.com",
+            projectId: "kmonitoramento-1e504",
+            storageBucket: "kmonitoramento-1e504.firebasestorage.app",
+            messagingSenderId: "1036253657697",
+            appId: "1:1036253657697:web:6077a46bc9b58ae5ac0820",
+            measurementId: "G-LNM4FPTNRH"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Function to update the dashboard with real-time data
+        function updateDashboard(data) {
+            document.getElementById('battery').innerText = data.battery;
+            document.getElementById('address').innerText = data.address;
+            document.getElementById('city').innerText = data.city;
+            document.getElementById('state').innerText = data.state;
+        }
+
+        // Function to initialize the map
+        function initMap(lat, lng) {
+            const map = L.map('map').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map);
+        }
+
+        // Listen for real-time updates from Firebase
+        const deviceRef = ref(database, 'device');
+        onValue(deviceRef, (snapshot) => {
+            const data = snapshot.val();
+            updateDashboard(data);
+            initMap(data.latitude, data.longitude);
+        });
+    </script>
+</body>
+</html>
