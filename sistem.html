@@ -49,10 +49,10 @@
         </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js";
-
+    <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.3.1/firebase-database.js"></script>
+    <script>
+        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA5_a0YuNjHDI7NfMuo90e5N475WeThTFo",
             authDomain: "kmonitoramento-1e504.firebaseapp.com",
@@ -65,8 +65,8 @@
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         // Function to update the dashboard with real-time data
         function updateDashboard(data) {
@@ -86,8 +86,8 @@
         }
 
         // Listen for real-time updates from Firebase
-        const deviceRef = ref(database, 'device');
-        onValue(deviceRef, (snapshot) => {
+        const deviceRef = database.ref('device');
+        deviceRef.on('value', (snapshot) => {
             const data = snapshot.val();
             updateDashboard(data);
             initMap(data.latitude, data.longitude);
